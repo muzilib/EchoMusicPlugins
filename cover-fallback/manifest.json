@@ -1,0 +1,12 @@
+{
+  "id": "cover-fallback",
+  "name": "封面兜底",
+  "version": "1.0.0",
+  "description": "自定义无封面或封面加载失败时的显示内容，支持文字渲染和自定义图片。",
+  "author": "EchoMusic",
+  "main": "index.js",
+  "contributes": {
+    "image": "icon.svg",
+    "runInMiniPlayer": true
+  }
+}

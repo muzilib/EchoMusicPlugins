@@ -1,0 +1,29 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="512"
+  height="512"
+  viewBox="0 0 512 512"
+>
+  <rect width="512" height="512" rx="80" fill="#4f7cff" />
+  <path d="M158 294V142h104v38h-62v114a46 46 0 1 1-42-46z" fill="#ffffff" />
+  <path
+    d="M286 210h96"
+    stroke="#ffffff"
+    stroke-width="30"
+    stroke-linecap="round"
+  />
+  <path
+    d="M286 280h132"
+    stroke="#ffffff"
+    stroke-width="30"
+    stroke-linecap="round"
+    opacity="0.72"
+  />
+  <path
+    d="M286 350h84"
+    stroke="#ffffff"
+    stroke-width="30"
+    stroke-linecap="round"
+    opacity="0.48"
+  />
+</svg>

@@ -1,0 +1,12 @@
+{
+  "id": "lyric-info-scroll",
+  "name": "信息区歌词滚动",
+  "version": "1.0.0",
+  "description": "用当前歌词替换主播放器和 mini 播放器的歌曲信息展示。",
+  "author": "EchoMusic",
+  "main": "index.js",
+  "contributes": {
+    "image": "icon.svg",
+    "runInMiniPlayer": true
+  }
+}
