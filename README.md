@@ -6,6 +6,49 @@
 
 - [插件列表](docs/plugin-list.md)：当前收录的插件、功能简介和安装方式。
 
+## 在线插件源
+
+EchoMusic 2.2.6-beta.11 起支持在"插件管理"中浏览在线插件源。本仓库根目录提供 `echo-plugins.json`，可以直接作为插件源添加：
+
+```text
+https://github.com/hoowhoami/EchoMusicPlugins
+```
+
+添加后，EchoMusic 会读取仓库根目录的 `echo-plugins.json`，展示可安装插件。索引中的插件可以通过 `path` 指向当前仓库内的插件目录；安装时 EchoMusic 会下载仓库 zip，只提取该目录并校验其中的 `manifest.json`。
+
+插件源索引格式：
+
+```json
+{
+  "name": "EchoMusic 官方插件源",
+  "homepage": "https://github.com/hoowhoami/EchoMusicPlugins",
+  "plugins": [
+    {
+      "id": "hello-echo",
+      "name": "Hello Echo",
+      "version": "1.0.0",
+      "description": "EchoMusic 插件示例",
+      "author": "EchoMusic User",
+      "icon": "icon.svg",
+      "path": "hello-echo",
+      "repo": "https://github.com/owner/repo/tree/main/hello-echo",
+      "homepage": "https://github.com/owner/repo/tree/main/hello-echo",
+      "tags": ["example"],
+      "requires": {
+        "echoMusicVersion": ">=2.2.6"
+      }
+    }
+  ]
+}
+```
+
+字段说明：
+
+- `path`：插件目录相对仓库根目录的路径，目录内必须包含 `manifest.json`。
+- `downloadUrl`：可选。留空时 EchoMusic 下载插件源仓库 zip；如果插件单独发布 zip，可填写 GitHub Release 资源地址。
+- `checksum` / `sha256`：可选。填写 64 位 sha256 或 `sha256:<hash>` 后，安装时会校验下载包。
+- `requires.echoMusicVersion`：和插件 manifest 中的版本要求一致，用于在线列表提前判断兼容性。
+
 ## 插件开发文档
 
 EchoMusic 支持本地插件。插件由用户主动放入插件目录并在"插件管理"中启用，定位接近 VS Code / Obsidian 的高自由度本地扩展：插件可以注册 UI、监听播放器状态、访问 Pinia store、注入 CSS、调用受控的播放器/队列/存储 API，也可以通过 selector 把 Vue 组件挂到主界面的任意 DOM 位置。

@@ -1,0 +1,36 @@
+{
+  "name": "EchoMusic 官方插件源",
+  "homepage": "https://github.com/hoowhoami/EchoMusicPlugins",
+  "plugins": [
+    {
+      "id": "cover-fallback",
+      "name": "封面兜底",
+      "version": "1.0.0",
+      "description": "自定义无封面或封面加载失败时的显示内容，支持文字渲染和自定义图片。",
+      "author": "EchoMusic",
+      "icon": "icon.svg",
+      "path": "cover-fallback",
+      "repo": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/cover-fallback",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/cover-fallback",
+      "tags": ["appearance", "cover", "mini-player"],
+      "requires": {
+        "echoMusicVersion": ">=2.2.6-beta.9"
+      }
+    },
+    {
+      "id": "lyric-info-scroll",
+      "name": "信息区歌词滚动",
+      "version": "1.0.0",
+      "description": "用当前歌词替换主播放器和 mini 播放器的歌曲信息展示。",
+      "author": "EchoMusic",
+      "icon": "icon.svg",
+      "path": "lyric-info-scroll",
+      "repo": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/lyric-info-scroll",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/lyric-info-scroll",
+      "tags": ["lyrics", "player-bar", "mini-player"],
+      "requires": {
+        "echoMusicVersion": ">=2.2.6-beta.9"
+      }
+    }
+  ]
+}
