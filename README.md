@@ -132,6 +132,7 @@ pnpm exec electron . --safe-mode
   },
   "capabilities": {
     "audioSource": false,
+    "kugouApi": false,
     "lyrics": false,
     "process": false
   },
@@ -149,6 +150,8 @@ pnpm exec electron . --safe-mode
 `runtime.desktopLyric` 可选。设为 `true` 后，EchoMusic 会在桌面歌词窗口中单独加载该插件。桌面歌词同样是独立窗口，只需要影响主窗口或 mini 窗口的插件不应开启该项。
 
 `capabilities.audioSource` 可选。插件如需通过 `ctx.player.audioSource.register()` 接管特定歌曲的播放 URL 解析，必须显式设为 `true`。适合 WebDAV、本地媒体库、私有网盘或其他自定义来源的歌曲。
+
+`capabilities.kugouApi` 可选。插件如需通过 `ctx.kugou` 调用 EchoMusic 内置的酷狗音乐、歌词、写真和推荐接口，必须显式设为 `true`。插件只传业务参数，不需要也不能传入 token、dfid、mid 等鉴权信息；宿主会使用当前 EchoMusic 登录态和设备态完成请求。
 
 `capabilities.lyrics` 可选。插件如需通过 `ctx.lyrics.registerResolver()` 为特定歌曲提供歌词内容，必须显式设为 `true`。适合 WebDAV 旁挂 `.lrc`、本地媒体库内嵌歌词或私有歌词服务。
 
@@ -268,6 +271,7 @@ export default {
 | `ctx.playlist`                                                        | 播放队列便捷 API                                                                                                                                                                                                          |
 | `ctx.lyric` / `ctx.settings`                                          | 歌词 store 与设置 store 的快捷引用，等价于 `ctx.stores.lyric` / `ctx.stores.settings`                                                                                                                                     |
 | `ctx.lyrics.registerResolver(options)`                                | 注册自定义歌词解析器，要求 manifest 声明 `capabilities.lyrics: true`                                                                                                                                                      |
+| `ctx.kugou`                                                           | 调用 EchoMusic 内置酷狗业务接口，要求 manifest 声明 `capabilities.kugouApi: true`；鉴权信息由宿主自动注入                                                                                                                 |
 | `ctx.storage`                                                         | 插件私有 KV 存储，按插件 id 自动隔离                                                                                                                                                                                      |
 | `ctx.dialog.selectDirectory(options?)`                                | 打开系统文件夹选择对话框，返回 `{ canceled, paths }`                                                                                                                                                                      |
 | `ctx.dialog.selectFiles(options?)`                                    | 打开系统文件选择对话框，支持 `multiple` 和 `filters`                                                                                                                                                                      |
@@ -480,6 +484,77 @@ export function activate(ctx) {
 `match` 和 `resolve` 都可以是异步函数。多个插件同时注册时，`order` 越小越先执行；第一个返回有效歌词文本的 resolver 会接管本次歌词加载。返回 `null`、`undefined`、`false` 或空文本时，EchoMusic 会继续尝试下一个插件 resolver，最后回到内置酷狗歌词搜索。
 
 如果用户已经在歌词来源面板为当前歌曲手动选择过歌词，EchoMusic 会优先保留用户手动选择，不再用插件 resolver 覆盖。
+
+### 酷狗 API
+
+插件可以通过 `ctx.kugou` 调用 EchoMusic 已封装的酷狗接口。使用前在 manifest 中声明：
+
+```json
+{
+  "capabilities": {
+    "kugouApi": true
+  }
+}
+```
+
+插件无需传入 token，也不会拿到用户 token。`ctx.kugou` 内部复用 EchoMusic 的请求层，调用时会自动带上当前登录态和设备态；如果用户未登录或登录过期，请求结果会和主程序内置功能保持一致。部分接口会修改用户账号数据，例如收藏、删除、关注、上传播放历史等，插件应只在用户明确触发对应操作时调用。
+
+`ctx.kugou` 会按 EchoMusic 内部 `src/renderer/api/*.ts` 的文件名动态生成命名空间，`external.ts` 这类非酷狗请求模块不包含在内。后续主程序新增酷狗 API 文件或导出函数后，插件可以直接通过 `ctx.kugou.<模块名>.<函数名>()` 调用，不需要插件运行时再单独维护映射。
+
+常用模块：
+
+| 命名空间             | 来源文件          | 示例                                            |
+| -------------------- | ----------------- | ----------------------------------------------- |
+| `ctx.kugou.music`    | `api/music.ts`    | `ctx.kugou.music.getSongUrl(hash)`              |
+| `ctx.kugou.user`     | `api/user.ts`     | `ctx.kugou.user.getUserDetail()`                |
+| `ctx.kugou.playlist` | `api/playlist.ts` | `ctx.kugou.playlist.getUserPlaylists()`         |
+| `ctx.kugou.video`    | `api/video.ts`    | `ctx.kugou.video.getVideoDetail(id)`            |
+| `ctx.kugou.search`   | `api/search.ts`   | `ctx.kugou.search.search(keyword)`              |
+| `ctx.kugou.artist`   | `api/artist.ts`   | `ctx.kugou.artist.getArtistDetail(id)`          |
+| `ctx.kugou.album`    | `api/album.ts`    | `ctx.kugou.album.getAlbumDetail(id)`            |
+| `ctx.kugou.comment`  | `api/comment.ts`  | `ctx.kugou.comment.getMusicComments(mixSongId)` |
+
+示例：在自定义歌词解析器里复用 EchoMusic 登录态搜索酷狗歌词。由于这里同时注册歌词 resolver，manifest 也需要声明 `lyrics` 能力：
+
+```json
+{
+  "capabilities": {
+    "kugouApi": true,
+    "lyrics": true
+  }
+}
+```
+
+```js
+export function activate(ctx) {
+  ctx.lyrics.registerResolver({
+    id: "kugou-login-lyric",
+    order: 200,
+    match({ track }) {
+      return Boolean(track?.hash);
+    },
+    async resolve({ track }) {
+      const result = await ctx.kugou.music.searchLyric(
+        track.hash,
+        track.duration,
+      );
+      const candidates = result?.candidates || result?.data?.candidates || [];
+      const first = candidates[0];
+      if (!first?.id || !first?.accesskey) return null;
+
+      const detail = await ctx.kugou.music.getLyric(
+        String(first.id),
+        String(first.accesskey),
+      );
+      return {
+        source: "酷狗",
+        lyric:
+          detail?.decodeContent || detail?.content || detail?.data?.content,
+      };
+    },
+  });
+}
+```
 
 ### 使用宿主图标
 
