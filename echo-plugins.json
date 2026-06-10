@@ -4,51 +4,27 @@
   "plugins": [
     {
       "id": "cover-fallback",
-      "name": "封面兜底",
-      "version": "1.0.0",
-      "description": "自定义无封面或封面加载失败时的显示内容，支持文字渲染和自定义图片。",
-      "author": "EchoMusic",
-      "icon": "icon.svg",
       "path": "cover-fallback",
-      "repo": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/cover-fallback",
       "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/cover-fallback",
       "tags": [
         "appearance",
         "cover",
         "mini-player"
-      ],
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.10"
-      }
+      ]
     },
     {
       "id": "lyric-info-scroll",
-      "name": "信息区歌词滚动",
-      "version": "1.0.0",
-      "description": "用当前歌词替换主播放器和 mini 播放器的歌曲信息展示。",
-      "author": "EchoMusic",
-      "icon": "icon.svg",
       "path": "lyric-info-scroll",
-      "repo": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/lyric-info-scroll",
       "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/lyric-info-scroll",
       "tags": [
         "lyrics",
         "player-bar",
         "mini-player"
-      ],
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.10"
-      }
+      ]
     },
     {
       "id": "spectrum-visualizer",
-      "name": "频谱可视化",
-      "version": "1.0.1",
-      "description": "在播放栏、mini 播放器和歌词页底部控制区显示跟随音频变化的频谱背景。",
-      "author": "EchoMusic",
-      "icon": "icon.svg",
       "path": "spectrum-visualizer",
-      "repo": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/spectrum-visualizer",
       "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/spectrum-visualizer",
       "tags": [
         "audio",
@@ -56,68 +32,38 @@
         "player-bar",
         "mini-player",
         "lyrics"
-      ],
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.12"
-      }
+      ]
     },
     {
       "id": "webdav-music",
-      "name": "WebDAV 音乐",
-      "version": "1.0.3",
-      "description": "连接 WebDAV 服务器，浏览和播放云端音乐文件",
-      "author": "Oneday5799",
-      "icon": "icon.svg",
       "path": "webdav-music",
-      "main": "index.js",
-      "style": "style.css",
-      "runtime": {
-        "miniPlayer": false,
-        "desktopLyric": false
-      },
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.11"
-      },
-      "capabilities": {
-        "audioSource": true
-      }
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/webdav-music",
+      "tags": [
+        "audio-source",
+        "webdav",
+        "cloud-music"
+      ]
     },
     {
       "id": "echomusic-vinyl-rotation",
-      "name": "黑胶唱片旋转封面",
-      "version": "1.0.0",
-      "description": "让歌词页面的专辑封面变成圆形，并随音乐播放不断匀速旋转",
-      "author": "吴彦祖",
       "path": "echomusic-vinyl-rotation",
-      "main": "index.js",
-      "icon": "logo.svg",
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.9"
-      }
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/echomusic-vinyl-rotation",
+      "tags": [
+        "appearance",
+        "lyrics",
+        "cover"
+      ]
     },
     {
       "id": "Lyrics-bridge",
-      "name": "灵动岛歌词",
-      "version": "1.1.0",
-      "description": "将 EchoMusic 的歌词和播放状态展示到灵动岛",
-      "author": "xiaotian2333",
       "path": "",
       "repo": "https://github.com/xiaotian2333/Lyrics-bridge",
       "homepage": "https://github.com/xiaotian2333/Lyrics-bridge",
-      "downloadUrl": "https://github.com/xiaotian2333/Lyrics-bridge/releases/latest/download/Lyrics-bridge.zip",
       "tags": [
         "WinIsland",
         "lyrics",
         "server"
-      ],
-      "main": "index.js",
-      "style": "style.css",
-      "capabilities": {
-        "process": true
-      },
-      "requires": {
-        "echoMusicVersion": ">=2.2.6-beta.12"
-      }
+      ]
     }
   ]
 }

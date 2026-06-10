@@ -14,7 +14,9 @@ EchoMusic 2.2.6-beta.11 起支持在"插件管理"中浏览在线插件源。本
 https://github.com/hoowhoami/EchoMusicPlugins
 ```
 
-添加后，EchoMusic 会读取仓库根目录的 `echo-plugins.json`，展示可安装插件。索引中的插件可以通过 `path` 指向当前仓库内的插件目录，也可以通过 `repo` 指向其他 GitHub 插件仓库；安装时 EchoMusic 会下载对应仓库或 `downloadUrl` 指定的 zip，只提取 `path` 指向的目录并校验其中的 `manifest.json`。
+添加后，EchoMusic 会读取仓库根目录的 `echo-plugins.json`。这个文件只是插件源索引，负责告诉 EchoMusic“有哪些插件、插件仓库在哪里、插件目录在哪里”。插件的名称、版本、描述、作者、图标、入口文件、能力声明和兼容性要求，都以插件仓库里的 `manifest.json` 为准。
+
+刷新在线插件列表时，EchoMusic 会先读取插件源索引，再根据每个条目的 `repo` 和 `path` 读取对应插件目录下的 `manifest.json`。安装时会下载插件仓库 zip，只提取 `path` 指向的目录并再次校验其中的 `manifest.json`。
 
 插件源索引格式：
 
@@ -25,18 +27,10 @@ https://github.com/hoowhoami/EchoMusicPlugins
   "plugins": [
     {
       "id": "hello-echo",
-      "name": "Hello Echo",
-      "version": "1.0.0",
-      "description": "EchoMusic 插件示例",
-      "author": "EchoMusic User",
-      "icon": "icon.svg",
       "path": "hello-echo",
-      "repo": "https://github.com/owner/repo/tree/main/hello-echo",
+      "repo": "https://github.com/owner/repo",
       "homepage": "https://github.com/owner/repo/tree/main/hello-echo",
-      "tags": ["example"],
-      "requires": {
-        "echoMusicVersion": ">=2.2.6"
-      }
+      "tags": ["example"]
     }
   ]
 }
@@ -44,33 +38,44 @@ https://github.com/hoowhoami/EchoMusicPlugins
 
 字段说明：
 
-- `path` / `packagePath`：插件目录相对下载包根目录的路径，目录内必须包含 `manifest.json`。留空字符串时表示插件就在下载包根目录。
-- `repo`：可选。插件源码仓库地址，也会作为默认下载仓库；留空时默认使用插件源仓库。可以填写仓库根地址或 GitHub 的 `/tree/...` 页面地址。
+- `id`：推荐填写。用于标识索引条目；如果填写，必须和插件 `manifest.json` 中的 `id` 一致。
+- `path` / `packagePath`：可选。插件目录相对仓库 zip 根目录的路径，目录内必须包含 `manifest.json`。留空字符串时表示插件就在仓库根目录。
+- `repo`：可选。插件源码仓库地址；留空时默认使用插件源仓库。可以填写 `owner/repo` 或 GitHub 仓库 URL。
 - `homepage`：可选。插件详情页或说明页地址，主要用于展示。
-- `downloadUrl`：可选。填写后 EchoMusic 会直接下载该 zip；留空时会下载 `repo` 指向的 GitHub 仓库 zip，`repo` 为空时下载插件源仓库 zip。
-- `checksum` / `sha256`：可选。填写 64 位 sha256 或 `sha256:<hash>` 后，安装时会校验下载包。
-- `requires.echoMusicVersion`：和插件 manifest 中的版本要求一致，用于在线列表提前判断兼容性。
+- `tags`：可选。用于在线插件列表的分类和搜索。
+
+不要在 `echo-plugins.json` 中维护插件 `version`、`description`、`author`、`icon`、`main`、`style`、`capabilities`、`requires` 等字段。这些信息属于插件自身清单，应写在插件目录的 `manifest.json` 中。插件更新版本时，只需要更新插件仓库里的 `manifest.json`，插件源索引无需同步修改版本号。
+
+插件目录中的 `manifest.json` 示例：
+
+```json
+{
+  "id": "hello-echo",
+  "name": "Hello Echo",
+  "version": "1.0.0",
+  "description": "EchoMusic 插件示例",
+  "author": "EchoMusic User",
+  "icon": "icon.svg",
+  "main": "index.js",
+  "requires": {
+    "echoMusicVersion": ">=2.2.6"
+  }
+}
+```
 
 如果插件本身就是一个独立 GitHub 仓库，并且 `manifest.json` 位于仓库根目录，可以这样写：
 
 ```json
 {
   "id": "echo-hello",
-  "name": "示例插件",
-  "version": "1.0.0",
-  "description": "演示独立GitHub仓库插件",
-  "author": "xxx",
   "path": "",
   "repo": "https://github.com/xxx/echo-hello",
   "homepage": "https://github.com/xxx/echo-hello",
-  "tags": ["lyrics"],
-  "requires": {
-    "echoMusicVersion": ">=2.2.6-beta.12"
-  }
+  "tags": ["lyrics"]
 }
 ```
 
-如果插件仓库中还有外层目录，例如 zip 解压后需要安装 `packages/echo-plugin`，则把 `path` 写成对应相对路径即可。
+如果插件仓库中还有外层目录，例如 zip 解压后需要安装 `packages/echo-plugin`，则把 `path` 写成对应相对路径即可。EchoMusic 会读取 `packages/echo-plugin/manifest.json` 作为该插件的权威清单。
 
 ## 插件开发文档
 
