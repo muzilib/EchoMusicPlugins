@@ -91,8 +91,10 @@
   flex-wrap: wrap;
   gap: 2px;
   flex-shrink: 0;
-  padding: 2px 0 6px;
+  padding: 2px 0 8px;
   font-size: 13px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 2px;
 }
 
 .webdav-breadcrumb-item {
@@ -166,6 +168,28 @@
 
 .webdav-list-header > div {
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.webdav-list-header > div:hover {
+  opacity: 1;
+}
+
+/* 排序图标 */
+.sort-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* 排序状态指示 */
+.webdav-list-header .is-sorted {
+  color: var(--color-primary);
+  opacity: 1;
 }
 
 .webdav-list-header .webdav-col-index {
@@ -174,6 +198,7 @@
 
 .webdav-list-header .webdav-col-song {
   min-width: 0;
+  padding-left: 58px; /* 46px 封面 + 12px gap，使"歌曲"对齐歌曲名而非封面 */
 }
 
 .webdav-list-header .webdav-col-size {
@@ -499,4 +524,47 @@
   background: var(--color-bg-elevated);
   border-radius: 0 6px 6px 0;
   font-size: 12px;
+}
+
+/* ---- Right-click Context Menu ---- */
+.webdav-context-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1100;
+}
+
+.webdav-context-menu {
+  position: fixed;
+  min-width: 150px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border, var(--border-subtle));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1200;
+}
+
+.webdav-context-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-text-main);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.webdav-context-item:hover {
+  background: var(--color-bg-hover, rgba(128, 128, 128, 0.1));
+  color: var(--color-primary);
 }
