@@ -291,9 +291,6 @@ const syncToStores = (ctx, songId, patch) => {
   }
 };
 
-/** 已充实过元数据的歌曲 ID 集合（防止重复请求） */
-const enrichedIds = new Set();
-
 /**
  * 从嵌入标签充实歌曲元数据（模块级，可被组件和 activate watcher 共用）
  * 
@@ -304,9 +301,6 @@ const enrichedIds = new Set();
  */
 const enrichTrack = async (ctx, state, song) => {
   if (!song._filePath) return song;
-  const sid = String(song.id);
-  if (enrichedIds.has(sid)) return song;
-  enrichedIds.add(sid);
   console.log("[webdav-music] enrichTrack started for:", song._filePath);
   const tags = await readEmbeddedTags(ctx, state.settings, song._filePath);
   if (!tags) return song;
