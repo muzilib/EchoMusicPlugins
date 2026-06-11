@@ -3,6 +3,16 @@
   "homepage": "https://github.com/hoowhoami/EchoMusicPlugins",
   "plugins": [
     {
+      "id": "page-motion",
+      "path": "page-motion",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/page-motion",
+      "tags": [
+        "appearance",
+        "page-transition",
+        "animation"
+      ]
+    },
+    {
       "id": "cover-fallback",
       "path": "cover-fallback",
       "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/cover-fallback",
