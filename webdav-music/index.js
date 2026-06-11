@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
   username: "",
   password: "",
   rootPath: "/",
+  coverLyricSource: "embedded", // "embedded" | "kugou"
 };
 
 
@@ -51,21 +52,26 @@ let _bcChannel = null;
 const convertCoverForSmtc = async (url) => {
   if (!url) return url;
 
-  // 远程 HTTP(S) URL：主进程 fetch 可以正常下载，无需转换
-  if (/^https?:\/\//.test(url)) return url;
-
-  // 已经是 JPEG data URL：主进程 fetch 可处理，native addon 有 JPEG 快速路径
+  // 已经是 JPEG data URL：直接使用，native addon 有 JPEG 快速路径
   if (/^data:image\/jpeg/.test(url)) return url;
+
+  // 超时时间（毫秒）
+  const TIMEOUT_MS = 5000;
 
   try {
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.src = url;
-    });
+    await Promise.race([
+      new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = url;
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Image load timeout')), TIMEOUT_MS)
+      )
+    ]);
 
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
@@ -81,8 +87,22 @@ const convertCoverForSmtc = async (url) => {
     );
     return jpegDataUrl;
   } catch (e) {
-    console.warn('[webdav-music] SMTC cover conversion failed, fallback to original:', e);
-    return url;
+    console.warn('[webdav-music] SMTC cover conversion failed, trying fetch fallback:', e);
+    // 尝试使用 fetch 获取 blob，然后转换为 data URL
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (fetchError) {
+      console.warn('[webdav-music] Fetch fallback also failed, returning original URL:', fetchError);
+      return url;
+    }
   }
 };
 
@@ -274,20 +294,135 @@ const syncToStores = (ctx, songId, patch) => {
       }
       // 4) 元数据充实后同步刷新 Windows SMTC
       if (snapshot && window.electron?.mediaControls) {
-        const rawCoverUrl = patch.coverUrl || _fallbackCoverUrlRef.value;
-        convertCoverForSmtc(rawCoverUrl).then((coverUrl) => {
-          window.electron.mediaControls.updateMetadata({
-            title: snapshot.title || "未知歌曲",
-            artist: snapshot.artist || "未知歌手",
-            album: snapshot.album || "",
-            durationMs: (snapshot.duration || 0) * 1000,
-            coverUrl,
-          });
-        });
+        const rawCoverUrl = patch.coverUrl || snapshot.coverUrl || snapshot.cover || _fallbackCoverUrlRef.value;
+        console.log("[webdav-music] SMTC sync call, rawCoverUrl type:", rawCoverUrl?.substring(0, 50), "patch keys:", Object.keys(patch).join(","));
+        (async () => {
+          try {
+            const coverUrl = await convertCoverForSmtc(rawCoverUrl);
+            console.log("[webdav-music] SMTC updateMetadata with coverUrl:", coverUrl?.substring(0, 80));
+            window.electron.mediaControls.updateMetadata({
+              title: snapshot.title || "未知歌曲",
+              artist: snapshot.artist || "未知歌手",
+              album: snapshot.album || "",
+              durationMs: (snapshot.duration || 0) * 1000,
+              coverUrl,
+            });
+          } catch (e) {
+            console.warn('[webdav-music] SMTC cover conversion failed, using default:', e);
+            // 使用默认的1x1像素透明JPEG作为备选
+            const defaultCoverUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAFRABAQAAAAAAAAAAAAAAAAAAAAf/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8ApgAH/9k=';
+            window.electron.mediaControls.updateMetadata({
+              title: snapshot.title || "未知歌曲",
+              artist: snapshot.artist || "未知歌手",
+              album: snapshot.album || "",
+              durationMs: (snapshot.duration || 0) * 1000,
+              coverUrl: defaultCoverUrl,
+            });
+          }
+        })();
       }
     }
   } catch (err) {
     console.error("[webdav-music] syncToStores error:", err);
+  }
+};
+
+/**
+ * 通过酷狗 API 搜索并补全歌曲元数据（异步 fire-and-forget，不阻塞播放）
+ * 
+ * 当文件嵌入标签（ID3v2/FLAC）解析失败时，作为第三优先级回退。
+ * 使用 ctx.kugou 调用 EchoMusic 内置酷狗接口，无需额外鉴权。
+ */
+const enrichFromKugouApi = async (ctx, song) => {
+  console.log("[webdav-music] enrichFromKugouApi entered, title:", song?.title, "ctx.kugou:", !!ctx?.kugou);
+  if (!song || !song.title || !ctx.kugou) return;
+  // 如果歌曲已有封面和歌词，跳过 API 查询
+  if (song.coverUrl && song.lyric) {
+    console.log("[webdav-music] enrichFromKugouApi skipped, song already has cover and lyric");
+    return;
+  }
+  const artist = song.artist || "";
+  const title = song.title;
+  const keyword = artist && artist !== "未知歌手" ? `${artist} ${title}` : title;
+  console.log("[webdav-music] enrichFromKugouApi searching:", keyword);
+  try {
+    const result = await ctx.kugou.search.search(keyword, "song", 1, 5);
+    const data = result?.data;
+    const lists = data?.lists || data?.list || [];
+    if (!lists.length) {
+      console.log("[webdav-music] enrichFromKugouApi no results for:", keyword);
+      return;
+    }
+    const match = lists[0];
+    if (!match) return;
+    // 等到搜索结果返回时，可能 readEmbeddedTags 已完成并设置了封面/歌词
+    // 如果歌曲现在已有封面和歌词，跳过补全
+    if (song.coverUrl && song.lyric) {
+      console.log("[webdav-music] enrichFromKugouApi skipped after search, song already has cover and lyric");
+      return;
+    }
+    // 从匹配结果中提取元数据（字段名参考主应用 mapSearchSong）
+    const patch = {};
+    const fileHash = match.FileHash;
+    const rawCoverInput = match.Image || match.trans_param?.union_cover || match.cover || "";
+    const coverUrl = formatPicUrl(rawCoverInput);
+    console.log("[webdav-music] enrichFromKugouApi cover URL debug:", { rawInput: rawCoverInput?.substring(0, 80), formatted: coverUrl?.substring(0, 80) });
+    const albumName = match.AlbumName || "";
+    const matchSinger = match.SingerName || "";
+    const matchTitle = match.SongName || match.FileName || match.OriSongName || "";
+    // 补全封面（仅当歌曲还没有封面时）
+    if (coverUrl && !song.coverUrl) {
+      song.coverUrl = coverUrl;
+      song.cover = coverUrl;
+      patch.coverUrl = coverUrl;
+      patch.cover = coverUrl;
+    }
+    // 补全专辑名
+    if (albumName && !song.album) {
+      song.album = albumName;
+      song.albumName = albumName;
+      patch.album = albumName;
+      patch.albumName = albumName;
+    }
+    // 补全歌手名（仅在原文案为文件名/未知时）
+    if (matchSinger && (!song.artist || song.artist === "未知歌手")) {
+      song.artist = matchSinger;
+      song.artists = [{ name: matchSinger }];
+      song.singers = [{ name: matchSinger }];
+      patch.artist = matchSinger;
+      patch.artists = [{ name: matchSinger }];
+      patch.singers = [{ name: matchSinger }];
+    }
+    // 搜索歌词（通过 FileHash）—— 仅当歌曲还没有歌词时
+    if (fileHash && !song.lyric) {
+      try {
+        const lyricResult = await ctx.kugou.music.searchLyric(fileHash);
+        const candidates = lyricResult?.candidates || lyricResult?.data?.candidates || [];
+        const first = candidates[0];
+        if (first?.id && first?.accesskey) {
+          const lyricDetail = await ctx.kugou.music.getLyric(
+            String(first.id),
+            String(first.accesskey)
+          );
+          const lyricText = lyricDetail?.decodeContent || lyricDetail?.content || lyricDetail?.data?.content;
+          if (lyricText) {
+            song.lyric = lyricText;
+            patch.lyric = lyricText;
+          }
+        }
+      } catch (lyricErr) {
+        console.warn("[webdav-music] Kugou lyric fetch failed:", lyricErr.message);
+      }
+    }
+    // 同步到 stores
+    if (Object.keys(patch).length > 0) {
+      syncToStores(ctx, song.id, patch);
+      console.log("[webdav-music] enrichFromKugouApi applied:", Object.keys(patch), "title:", matchTitle);
+    } else {
+      console.log("[webdav-music] enrichFromKugouApi no usable data for:", keyword);
+    }
+  } catch (err) {
+    console.warn("[webdav-music] enrichFromKugouApi failed:", err.message);
   }
 };
 
@@ -308,17 +443,54 @@ const enrichTrack = async (ctx, state, song) => {
     (err) => console.warn("[webdav-music] detectAndSetQuality failed:", err.message),
   );
 
-  const tags = await readEmbeddedTags(ctx, state.settings, song._filePath);
-  if (!tags) return song;
-  console.log("[webdav-music] Embedded tags:", "title:", !!tags.title, "artist:", !!tags.artist, "album:", !!tags.album, "cover:", !!tags.coverData, "lyric:", !!tags.lyric, "duration:", tags.duration);
-  const patch = {};
-  if (tags.title) { song.title = tags.title; song.name = tags.title; patch.title = tags.title; patch.name = tags.title; }
-  if (tags.artist) { song.artist = tags.artist; song.artists = [{ name: tags.artist }]; song.singers = [{ name: tags.artist }]; patch.artist = tags.artist; patch.artists = [{ name: tags.artist }]; patch.singers = [{ name: tags.artist }]; }
-  if (tags.album) { song.album = tags.album; song.albumName = tags.album; patch.album = tags.album; patch.albumName = tags.album; }
-  if (tags.coverData) { const blob = new Blob([tags.coverData], { type: tags.coverMime || "image/jpeg" }); const cu = URL.createObjectURL(blob); song.coverUrl = cu; song.cover = cu; patch.coverUrl = cu; patch.cover = cu; }
-  if (tags.lyric) { song.lyric = tags.lyric; patch.lyric = tags.lyric; }
-  if (tags.duration > 0) { song.duration = tags.duration; patch.duration = tags.duration; }
-  syncToStores(ctx, song.id, patch);
+  const coverLyricSource = state.settings.coverLyricSource || "embedded";
+  
+  if (coverLyricSource === "kugou") {
+    // 酷狗优先：先调用酷狗API
+    console.log("[webdav-music] enrichTrack mode: kugou first");
+    await enrichFromKugouApi(ctx, song);
+    // 然后读取内嵌标签，只补充酷狗API没有的字段
+    const tags = await readEmbeddedTags(ctx, state.settings, song._filePath);
+    if (tags) {
+      console.log("[webdav-music] Embedded tags (kugou mode):", "title:", !!tags.title, "artist:", !!tags.artist, "album:", !!tags.album, "cover:", !!tags.coverData, "lyric:", !!tags.lyric, "duration:", tags.duration);
+      const patch = {};
+      if (tags.title && !song.title) { song.title = tags.title; song.name = tags.title; patch.title = tags.title; patch.name = tags.title; }
+      if (tags.artist && !song.artist) { song.artist = tags.artist; song.artists = [{ name: tags.artist }]; song.singers = [{ name: tags.artist }]; patch.artist = tags.artist; patch.artists = [{ name: tags.artist }]; patch.singers = [{ name: tags.artist }]; }
+      if (tags.album && !song.album) { song.album = tags.album; song.albumName = tags.album; patch.album = tags.album; patch.albumName = tags.album; }
+      if (tags.coverData && !song.coverUrl) { const blob = new Blob([tags.coverData], { type: tags.coverMime || "image/jpeg" }); const cu = URL.createObjectURL(blob); song.coverUrl = cu; song.cover = cu; patch.coverUrl = cu; patch.cover = cu; }
+      if (tags.lyric && !song.lyric) { song.lyric = tags.lyric; patch.lyric = tags.lyric; }
+      if (tags.duration > 0 && !song.duration) { song.duration = tags.duration; patch.duration = tags.duration; }
+      if (Object.keys(patch).length > 0) {
+        syncToStores(ctx, song.id, patch);
+        console.log("[webdav-music] enrichTrack (kugou mode) applied embedded patch:", Object.keys(patch));
+      }
+    }
+  } else {
+    // 内嵌优先：当前逻辑
+    console.log("[webdav-music] enrichTrack mode: embedded first");
+    const tags = await readEmbeddedTags(ctx, state.settings, song._filePath);
+    if (!tags) {
+      // 嵌入标签解析失败时，启动 Kugou API 补全
+      console.log("[webdav-music] enrichTrack no embedded tags, calling enrichFromKugouApi");
+      await enrichFromKugouApi(ctx, song);
+      console.log("[webdav-music] enrichTrack done:", song._filePath);
+      return song;
+    }
+    console.log("[webdav-music] Embedded tags:", "title:", !!tags.title, "artist:", !!tags.artist, "album:", !!tags.album, "cover:", !!tags.coverData, "lyric:", !!tags.lyric, "duration:", tags.duration);
+    const patch = {};
+    if (tags.title) { song.title = tags.title; song.name = tags.title; patch.title = tags.title; patch.name = tags.title; }
+    if (tags.artist) { song.artist = tags.artist; song.artists = [{ name: tags.artist }]; song.singers = [{ name: tags.artist }]; patch.artist = tags.artist; patch.artists = [{ name: tags.artist }]; patch.singers = [{ name: tags.artist }]; }
+    if (tags.album) { song.album = tags.album; song.albumName = tags.album; patch.album = tags.album; patch.albumName = tags.album; }
+    if (tags.coverData) { const blob = new Blob([tags.coverData], { type: tags.coverMime || "image/jpeg" }); const cu = URL.createObjectURL(blob); song.coverUrl = cu; song.cover = cu; patch.coverUrl = cu; patch.cover = cu; }
+    if (tags.lyric) { song.lyric = tags.lyric; patch.lyric = tags.lyric; }
+    if (tags.duration > 0) { song.duration = tags.duration; patch.duration = tags.duration; }
+    syncToStores(ctx, song.id, patch);
+    // 嵌入标签有内容但缺少封面或歌词，启动 Kugou API 补全
+    if (!tags.coverData || !tags.lyric) {
+      console.log("[webdav-music] enrichTrack missing cover or lyric, calling enrichFromKugouApi");
+      await enrichFromKugouApi(ctx, song);
+    }
+  }
   console.log("[webdav-music] enrichTrack done:", song._filePath);
   return song;
 };
@@ -401,6 +573,15 @@ const parseTitleArtist = (filename) => {
     }
   }
   return { artist: "", title: base };
+};
+/** 将酷狗图片路径格式化为可用的 HTTPS URL */
+const formatPicUrl = (value) => {
+  if (!value) return "";
+  let pic = String(value).replaceAll("{size}", "400");
+  if (pic.startsWith("//")) pic = "https:" + pic;
+  pic = pic.replace("http://", "https://");
+  pic = pic.replace("c1.kgimg.com", "imge.kugou.com");
+  return pic;
 };
 const buildAuthHeader = (settings) => {
   if (!settings.username) return null;
@@ -716,6 +897,7 @@ const createSettingsPanel = (ctx, state) => {
   const { defineAsyncComponent, defineComponent, h, reactive, ref } = ctx.vue;
   const Input = defineAsyncComponent(ctx.ui.components.Input);
   const Button = defineAsyncComponent(ctx.ui.components.Button);
+  const Switch = defineAsyncComponent(ctx.ui.components.Switch);
   const Tabs = defineAsyncComponent(ctx.ui.components.Tabs);
   const TabsList = defineAsyncComponent(ctx.ui.components.TabsList);
   const TabsTrigger = defineAsyncComponent(ctx.ui.components.TabsTrigger);
@@ -741,6 +923,20 @@ const createSettingsPanel = (ctx, state) => {
         h("div", { style: "display: flex; align-items: center; gap: 12px;" }, [
           h("label", { style: "width: 100px; flex-shrink: 0; font-size: 13px; color: var(--color-text-main); text-align: right;" }, label),
           h("div", { style: "flex: 1;" }, [input]),
+        ]);
+
+      const renderSwitchRow = (label, hint) =>
+        h("div", {
+          style: "display: flex; align-items: center; justify-content: space-between; gap: 14px;",
+        }, [
+          h("div", { style: "display: grid; gap: 3px; min-width: 0;" }, [
+            h("span", { style: "font-size: 13px; font-weight: 650; color: var(--color-text-main); margin: 0;" }, label),
+            hint ? h("span", { style: "font-size: 12px; color: var(--color-text-secondary); margin: 0; line-height: 1.45;" }, hint) : null,
+          ]),
+          h(Switch, {
+            modelValue: draft.coverLyricSource === "kugou",
+            "onUpdate:modelValue": (value) => { draft.coverLyricSource = value ? "kugou" : "embedded"; },
+          }),
         ]);
 
       return () =>
@@ -775,6 +971,10 @@ const createSettingsPanel = (ctx, state) => {
                 })),
                 h("p", { style: "font-size: 12px; color: var(--color-text-subtle); margin: 0; padding-left: 112px;" },
                   "浏览音乐文件的起始路径，默认为根目录 /"),
+                renderSwitchRow(
+                  "在线匹配封面歌词",
+                  "开启后使用酷狗搜索出的封面和歌词，关闭则优先使用歌曲内嵌的封面和歌词"
+                ),
                 h("div", { style: "display: flex; gap: 8px; justify-content: flex-end;" }, [
                   h(Button, { size: "xs", onClick: reset, variant: "outline" }, { default: () => "重置" }),
                   h(Button, { size: "xs", onClick: save }, { default: () => "保存" }),
