@@ -1471,26 +1471,28 @@ const createBrowserPage = (ctx, state) => {
               h(Icon, { icon: "tabler:server", width: 64, height: 64, class: "text-primary" }),
             ]),
             h("div", { class: "webdav-header-info" }, [
-              h("h1", { class: "webdav-header-title" }, "WebDAV"),
+              h("div", { class: "webdav-header-title-row" }, [
+                h("h1", { class: "webdav-header-title" }, "WebDAV"),
+              ]),
               h("p", { class: "webdav-header-desc" }, "连接 WebDAV 服务器，浏览和播放云端音乐文件"),
               h("div", { class: "webdav-header-stats" }, [
                 songCount > 0 ? h("span", songCount + " 首歌曲") : null,
               ]),
-            ]),
-            h("div", { class: "webdav-header-actions" }, [
-              h("button", {
-                class: "webdav-action-btn primary",
-                onClick: playAll,
-              }, [
-                h(Icon, { icon: ctx.icons.iconPlayerPlay, width: 16, height: 16 }),
-                h("span", "播放全部"),
-              ]),
-              h("button", {
-                class: "webdav-action-btn",
-                onClick: () => { ctx.toast.info("批量操作功能开发中"); },
-              }, [
-                h(Icon, { icon: ctx.icons.iconListCheck, width: 16, height: 16 }),
-                h("span", "批量操作"),
+              h("div", { class: "webdav-header-actions" }, [
+                h("button", {
+                  class: "webdav-action-btn primary",
+                  onClick: playAll,
+                }, [
+                  h(Icon, { icon: ctx.icons.iconPlayerPlay, width: 14, height: 14 }),
+                  h("span", "播放"),
+                ]),
+                h("button", {
+                  class: "webdav-action-btn",
+                  onClick: () => { ctx.toast.info("批量操作功能开发中"); },
+                }, [
+                  h(Icon, { icon: ctx.icons.iconListCheck, width: 14, height: 14 }),
+                  h("span", "批量"),
+                ]),
               ]),
             ]),
           ]),
