@@ -64,21 +64,22 @@
         "lyrics",
         "server"
       ]
+    },
+    {
+      "id": "echo-miuix-plugin",
+      "name": "Echo Miuix",
+      "description": "将 EchoMusic 界面改为MIUIX(小米澎湃)风格",
+      "author": "天影大侠",
+      "path": "",
+      "repo": "https://github.com/SkyShadowHero/echo-miuix-plugin",
+      "homepage": "https://github.com/SkyShadowHero/echo-miuix-plugin",
+      "tags": [
+        "appearance",
+        "miuix",
+        "theme"
+      ]
     }
   ]
-},
-{
-  "id": "echo-miuix-plugin",
-  "name": "Echo Miuix",
-  "description": "将 EchoMusic 界面改为MIUIX(小米澎湃)风格",
-  "author": "天影大侠",
-  "path": "",
-  "repo": "https://github.com/SkyShadowHero/echo-miuix-plugin",
-  "homepage": "https://github.com/SkyShadowHero/echo-miuix-plugin",
-  "tags": [
-    "appearance",
-    "miuix",
-    "theme"
-  ]
 }
+
 
