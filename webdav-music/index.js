@@ -503,6 +503,18 @@ const enrichTrack = async (ctx, state, song) => {
  * @param {string} filePath - 文件路径
  * @returns {Promise<string|null>} 音质标识
  */
+/** 从文件扩展名检测音质（无需网络请求） */
+const detectAudioQualityFromExtension = (filePath) => {
+  if (!filePath) return null;
+  const ext = filePath.slice(filePath.lastIndexOf(".") + 1).toLowerCase();
+  if (ext === "flac") return "flac";
+  if (ext === "wav" || ext === "ape" || ext === "aiff" || ext === "alac" || ext === "wv") return "flac";
+  if (ext === "dsf" || ext === "dff") return "super";
+  if (ext === "mp3") return null; // MP3 需要读取头部检测比特率
+  if (ext === "m4a" || ext === "aac") return "320"; // AAC/M4A 通常为 HQ
+  return null;
+};
+
 const detectAudioQuality = async (settings, filePath) => {
   if (!filePath) return null;
   // 1) 优先使用扩展名检测（即时完成，无需网络请求）
