@@ -143,16 +143,15 @@
 {
   "id": "echo-miuix-plugin",
   "name": "Echo Miuix",
-  "version": "1.0.0",
   "description": "将 EchoMusic 界面改为MIUIX(小米澎湃)风格",
   "author": "天影大侠",
-  "icon": "icon.svg",
   "path": "",
   "repo": "https://github.com/SkyShadowHero/echo-miuix-plugin",
   "homepage": "https://github.com/SkyShadowHero/echo-miuix-plugin",
-  "tags": ["appearance", "miuix", "theme"],
-  "requires": {
-    "echoMusicVersion": ">=2.2.6-beta.9"
-  }
+  "tags": [
+    "appearance",
+    "miuix",
+    "theme"
+  ]
 }
 
