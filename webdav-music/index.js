@@ -1462,29 +1462,36 @@ const createBrowserPage = (ctx, state) => {
           ]);
         }
 
+        const songCount = entries.value.filter((e) => !e.isCollection).length;
+
         return h("div", { class: "webdav-page" }, [
           // 标题栏（仿主应用 SliverHeader 展开态）
           h("div", { class: "webdav-header" }, [
             h("div", { class: "webdav-header-icon" }, [
-              h(Icon, { icon: "tabler:server", width: 32, height: 32, class: "text-primary" }),
+              h(Icon, { icon: "tabler:server", width: 64, height: 64, class: "text-primary" }),
             ]),
             h("div", { class: "webdav-header-info" }, [
               h("h1", { class: "webdav-header-title" }, "WebDAV"),
               h("p", { class: "webdav-header-desc" }, "连接 WebDAV 服务器，浏览和播放云端音乐文件"),
+              h("div", { class: "webdav-header-stats" }, [
+                songCount > 0 ? h("span", songCount + " 首歌曲") : null,
+              ]),
             ]),
             h("div", { class: "webdav-header-actions" }, [
-              h(Button, {
-                variant: "unstyled",
-                size: "none",
-                class: "webdav-action-btn",
+              h("button", {
+                class: "webdav-action-btn primary",
                 onClick: playAll,
-              }, { default: () => h(Icon, { icon: ctx.icons.iconPlayerPlay, width: 20, height: 20 }) }),
-              h(Button, {
-                variant: "unstyled",
-                size: "none",
-                class: "webdav-action-btn webdav-action-btn-secondary",
+              }, [
+                h(Icon, { icon: ctx.icons.iconPlayerPlay, width: 16, height: 16 }),
+                h("span", "播放全部"),
+              ]),
+              h("button", {
+                class: "webdav-action-btn",
                 onClick: () => { ctx.toast.info("批量操作功能开发中"); },
-              }, { default: () => h(Icon, { icon: ctx.icons.iconListCheck, width: 18, height: 18 }) }),
+              }, [
+                h(Icon, { icon: ctx.icons.iconListCheck, width: 16, height: 16 }),
+                h("span", "批量操作"),
+              ]),
             ]),
           ]),
 
