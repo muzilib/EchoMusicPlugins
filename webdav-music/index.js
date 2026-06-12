@@ -954,6 +954,10 @@ const ABOUT_HTML = `<div class="webdav-about">
 <p>EchoMusic &gt;= 2.2.6-beta.11</p>
 
 <h2>更新日志</h2>
+<h3>v1.1.1</h3>
+<ul>
+<li>修复设置页重置/保存按钮随内容滚动的问题，按钮固定在页面底部</li>
+</ul>
 <h3>v1.0.6</h3>
 <ul>
 <li>代码重构：提取 buildPatchFromSource 统一内嵌标签和酷狗 API 的 patch 构建逻辑</li>
