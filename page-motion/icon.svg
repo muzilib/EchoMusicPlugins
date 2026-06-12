@@ -6,34 +6,38 @@
 >
   <rect width="64" height="64" rx="14" fill="#0ea5e9" />
   <rect
-    x="13"
-    y="15"
-    width="34"
-    height="7"
-    rx="3.5"
+    x="15"
+    y="16"
+    width="30"
+    height="6"
+    rx="3"
     fill="#ffffff"
     opacity="0.9"
   />
   <rect
-    x="13"
-    y="27"
-    width="23"
-    height="6"
-    rx="3"
+    x="15"
+    y="28"
+    width="20"
+    height="5"
+    rx="2.5"
     fill="#ffffff"
     opacity="0.68"
   />
   <path
-    d="M36 41h-16"
+    d="M33 42h-13"
     fill="none"
     stroke="#ffffff"
     stroke-linecap="round"
-    stroke-width="4"
+    stroke-width="3.5"
     opacity="0.42"
   />
-  <path d="M36 42h12v5l9-8-9-8v5h-26v6h14z" fill="#ffffff" opacity="0.96" />
   <path
-    d="M16 50c8-5 18-5 31 0"
+    d="M33 42h10v4.5l8-7.5-8-7.5V36H22v6h11z"
+    fill="#ffffff"
+    opacity="0.96"
+  />
+  <path
+    d="M17 50c7.5-4.5 17-4.5 29 0"
     fill="none"
     stroke="#bae6fd"
     stroke-linecap="round"
