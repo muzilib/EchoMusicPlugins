@@ -88,6 +88,10 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.1.4
+
+- 修复主题色无法跟随封面颜色变化的问题：替换 markRaw 包装的 currentTrackSnapshot 引用，确保主应用 watcher 触发
+
 ### v1.1.3
 
 - 清理冗余 console.log 调试日志，仅保留 error/warn 级别
