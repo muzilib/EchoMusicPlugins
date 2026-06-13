@@ -1215,10 +1215,9 @@ const createBrowserPage = (ctx, state) => {
       const libraryPaths = ref({});
       const librarySongCounts = ref({});
 
-      // 批量选择状态
-      const batchMode = ref(false);
+      // 批量选择状态（仿主应用 BatchActionDrawer）
+      const showBatchDrawer = ref(false);
       const selectedKeys = ref(new Set());
-      const batchPanelRef = ref(null);
 
       // 当前播放歌曲列表容器引用（用于定位滚动）
       const listContainerRef = ref(null);
@@ -1240,14 +1239,19 @@ const createBrowserPage = (ctx, state) => {
         sortTick.value++;
       };
 
-      // ---- 批量选择 ----
-      const toggleBatchMode = () => {
-        batchMode.value = !batchMode.value;
-        if (!batchMode.value) selectedKeys.value = new Set();
+      // ---- 批量选择（仿主应用 BatchActionDrawer） ----
+      const openBatchDrawer = () => {
+        selectedKeys.value = new Set();
+        showBatchDrawer.value = true;
+      };
+
+      const closeBatchDrawer = () => {
+        showBatchDrawer.value = false;
+        selectedKeys.value = new Set();
       };
 
       const toggleSelectAll = () => {
-        const songEntries = sortedEntries.value.filter((e) => !e.isCollection);
+        const songEntries = filteredEntries.value.filter((e) => !e.isCollection);
         if (selectedKeys.value.size === songEntries.length) {
           selectedKeys.value = new Set();
         } else {
@@ -1264,23 +1268,25 @@ const createBrowserPage = (ctx, state) => {
       };
 
       const selectedSongs = computed(() => {
-        return sortedEntries.value.filter((e) => !e.isCollection && selectedKeys.value.has(e.name));
+        return filteredEntries.value.filter((e) => !e.isCollection && selectedKeys.value.has(e.name));
       });
 
       const isAllSelected = computed(() => {
-        const songEntries = sortedEntries.value.filter((e) => !e.isCollection);
+        const songEntries = filteredEntries.value.filter((e) => !e.isCollection);
         return songEntries.length > 0 && selectedKeys.value.size === songEntries.length;
       });
 
-      const batchPlayAll = async () => {
+      const isIndeterminate = computed(() => selectedKeys.value.size > 0 && !isAllSelected.value);
+
+      const batchPlaySelected = async () => {
         if (selectedSongs.value.length === 0) return;
         const songs = selectedSongs.value.map((e) => createSong(e, currentPath.value)).filter(Boolean);
         enrichSong(songs[0]).catch(() => {});
         try {
           await ctx.player.replaceQueueAndPlay(songs);
           ctx.toast.success(`已播放 ${songs.length} 首歌曲`);
+          closeBatchDrawer();
         } catch (err) { ctx.toast.danger("播放失败"); }
-        toggleBatchMode();
       };
 
       const batchAddToQueue = async () => {
@@ -1288,7 +1294,7 @@ const createBrowserPage = (ctx, state) => {
         const songs = selectedSongs.value.map((e) => createSong(e, currentPath.value)).filter(Boolean);
         ctx.playlist.append(songs);
         ctx.toast.success(`已添加 ${songs.length} 首到队列`);
-        toggleBatchMode();
+        closeBatchDrawer();
       };
 
       // ---- 定位当前播放 ----
@@ -1615,12 +1621,12 @@ const createBrowserPage = (ctx, state) => {
                   h("span", {}, "播放"),
                 ]),
                 h("button", {
-                  class: ["inline-flex items-center gap-2 px-3 h-9 rounded-lg text-[12px] font-semibold transition-all active:scale-95 select-none border-none cursor-pointer", batchMode.value ? "bg-primary text-white" : ""],
-                  style: batchMode.value ? {} : { background: "var(--bg-info-card)", color: "var(--color-text-main)" },
-                  onClick: toggleBatchMode,
+                  class: "inline-flex items-center gap-2 px-3 h-9 rounded-lg text-[12px] font-semibold transition-all active:scale-95 select-none border-none cursor-pointer",
+                  style: { background: "var(--bg-info-card)", color: "var(--color-text-main)" },
+                  onClick: openBatchDrawer,
                 }, [
                   h(Icon, { icon: ctx.icons.iconList, width: 16, height: 16 }),
-                  h("span", {}, batchMode.value ? "取消" : "批量"),
+                  h("span", {}, "批量"),
                 ]),
               ]),
             ]),
@@ -1743,41 +1749,6 @@ const createBrowserPage = (ctx, state) => {
                       h("p", { class: "webdav-empty-desc" }, "没有找到音乐文件"),
                     ])
                   : h("div", { ref: listContainerRef, class: "webdav-list" },
-                        // 批量操作工具栏
-                        batchMode.value ? h("div", { class: "webdav-batch-toolbar" }, [
-                          h("div", { class: "flex items-center gap-3" }, [
-                            h("button", {
-                              class: "webdav-batch-check",
-                              onClick: toggleSelectAll,
-                            }, [
-                              h("div", {
-                                class: ["webdav-checkbox", isAllSelected.value ? "is-checked" : ""],
-                              }, [
-                                isAllSelected.value ? h("svg", { viewBox: "0 0 16 16", width: 12, height: 12, innerHTML: '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" fill="currentColor"/>' }) : null,
-                              ]),
-                              h("span", { class: "text-[12px] text-text-main" }, `全选 (${sortedEntries.value.filter((e) => !e.isCollection).length})`),
-                            ]),
-                            h("span", { class: "text-[12px] text-text-subtle" }, `${selectedKeys.value.size} 首已选`),
-                          ]),
-                          h("div", { class: "flex items-center gap-2" }, [
-                            h("button", {
-                              class: "webdav-batch-action-btn",
-                              disabled: selectedKeys.value.size === 0,
-                              onClick: batchPlayAll,
-                            }, [
-                              h(Icon, { icon: ctx.icons.iconPlay, width: 14, height: 14 }),
-                              h("span", {}, "播放"),
-                            ]),
-                            h("button", {
-                              class: "webdav-batch-action-btn",
-                              disabled: selectedKeys.value.size === 0,
-                              onClick: batchAddToQueue,
-                            }, [
-                              h(Icon, { icon: ctx.icons.iconPlus, width: 14, height: 14 }),
-                              h("span", {}, "添加到队列"),
-                            ]),
-                          ]),
-                        ]) : null,
                         filteredEntries.value.map((entry, idx) => {
                           const isDir = entry.isCollection;
                           const fileIdx = isDir ? null : filteredEntries.value.filter((e, i) => i <= idx && !e.isCollection).length;
@@ -1788,13 +1759,13 @@ const createBrowserPage = (ctx, state) => {
                           const { artist, title } = isDir ? { artist: "", title: "" } : parseTitleArtist(entry.name);
                           return h("div", {
                             class: ["webdav-row", isDir ? "webdav-row-dir" : "", isActive ? "is-active" : "", isSelected ? "is-selected" : ""],
-                            onDblclick: isDir ? () => navigateTo(filePath + "/") : () => batchMode.value ? toggleSong(entry) : handleDoubleTapPlay(entry),
-                            onClick: batchMode.value && !isDir ? (e) => { e.stopPropagation(); toggleSong(entry); } : undefined,
+                            onDblclick: isDir ? () => navigateTo(filePath + "/") : () => showBatchDrawer.value ? toggleSong(entry) : handleDoubleTapPlay(entry),
+                            onClick: showBatchDrawer.value && !isDir ? (e) => { e.stopPropagation(); toggleSong(entry); } : undefined,
                             onContextmenu: (e) => showContextMenu(e, entry, isDir),
                           }, [
                             // 索引列 / 复选框列
                             h("div", { class: "webdav-col-index" }, [
-                              batchMode.value && !isDir
+                              showBatchDrawer.value && !isDir
                                 ? h("div", {
                                     class: ["webdav-checkbox", isSelected ? "is-checked" : ""],
                                     onClick: (e) => { e.stopPropagation(); toggleSong(entry); },
@@ -1840,6 +1811,72 @@ const createBrowserPage = (ctx, state) => {
               ]),
             ]),
           ] : null,
+          // 批量操作抽屉（仿主应用 BatchActionDrawer）
+          showBatchDrawer.value ? h(Teleport, { to: "body" }, [
+            h("div", { class: "webdav-batch-overlay", onMousedown: closeBatchDrawer }),
+            h("div", { class: "webdav-batch-drawer" }, [
+              // 头部：标题 + 操作按钮 + 关闭
+              h("div", { class: "webdav-batch-header" }, [
+                h("div", { class: "webdav-batch-title" }, "批量操作"),
+                h("div", { class: "webdav-batch-actions" }, [
+                  h("button", {
+                    class: "webdav-batch-action",
+                    disabled: selectedSongs.value.length === 0,
+                    onClick: batchPlaySelected,
+                  }, [
+                    h(Icon, { icon: ctx.icons.iconPlay, width: 16, height: 16 }),
+                    h("span", {}, "播放"),
+                  ]),
+                  h("button", {
+                    class: "webdav-batch-action",
+                    disabled: selectedSongs.value.length === 0,
+                    onClick: batchAddToQueue,
+                  }, [
+                    h(Icon, { icon: ctx.icons.iconPlus, width: 16, height: 16 }),
+                    h("span", {}, "添加到"),
+                  ]),
+                ]),
+                h("button", { class: "webdav-batch-close", onClick: closeBatchDrawer }, [
+                  h(Icon, { icon: "tabler:x", width: 14, height: 14 }),
+                ]),
+              ]),
+              // 全选 + 已选数量
+              h("div", { class: "webdav-batch-selection" }, [
+                h("button", { class: "webdav-batch-select-btn", onClick: toggleSelectAll }, [
+                  h("div", { class: ["webdav-checkbox", isAllSelected.value ? "is-checked" : "", isIndeterminate.value ? "is-indeterminate" : ""] }, [
+                    isAllSelected.value ? h("svg", { viewBox: "0 0 16 16", width: 10, height: 10, innerHTML: '<path d="M13.854 3.646a.5.5 0 1 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" fill="currentColor"/>' }) : null,
+                    isIndeterminate.value && !isAllSelected.value ? h("div", { class: "webdav-checkbox-indeterminate" }) : null,
+                  ]),
+                  h("span", {}, "全选"),
+                ]),
+                h("div", { class: "webdav-batch-count" }, `已选 ${selectedKeys.value.size} / ${filteredEntries.value.filter((e) => !e.isCollection).length}`),
+              ]),
+              // 歌曲列表
+              h("div", { class: "webdav-batch-list" }, [
+                filteredEntries.value.filter((e) => !e.isCollection).map((entry) => {
+                  const isSelected = selectedKeys.value.has(entry.name);
+                  const { artist, title } = parseTitleArtist(entry.name);
+                  return h("div", {
+                    class: ["webdav-batch-row", isSelected ? "is-selected" : ""],
+                    onClick: () => toggleSong(entry),
+                  }, [
+                    h("div", { class: "webdav-batch-leading" }, [
+                      h("div", { class: ["webdav-checkbox", isSelected ? "is-checked" : ""] }, [
+                        isSelected ? h("svg", { viewBox: "0 0 16 16", width: 10, height: 10, innerHTML: '<path d="M13.854 3.646a.5.5 0 1 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" fill="currentColor"/>' }) : null,
+                      ]),
+                    ]),
+                    h("div", { class: "webdav-batch-card" }, [
+                      h("div", { class: "webdav-batch-song-info" }, [
+                        h("span", { class: "webdav-batch-song-title" }, title || entry.name),
+                        h("span", { class: "webdav-batch-song-artist" }, artist || "未知歌手"),
+                      ]),
+                    ]),
+                    h("div", { class: "webdav-batch-size" }, formatSize(entry.contentLength)),
+                  ]);
+                }),
+              ]),
+            ]),
+          ]) : null,
         ]);
       };
     },
