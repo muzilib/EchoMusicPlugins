@@ -88,6 +88,10 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.1.5
+
+- 修复重启应用后上次播放的歌曲没有封面和歌词的问题：新增 currentTrackSnapshot watcher，确保 snapshot 恢复后触发 enrichment
+
 ### v1.1.4
 
 - 修复主题色无法跟随封面颜色变化的问题：替换 markRaw 包装的 currentTrackSnapshot 引用，确保主应用 watcher 触发

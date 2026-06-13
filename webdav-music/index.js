@@ -1625,19 +1625,25 @@ export async function activate(ctx) {
     },
   });
 
+  const _doEnrichCurrentTrack = () => {
+    const trackId = ctx.stores.player.currentTrackId;
+    if (!trackId) return;
+    const track = ctx.stores.player.currentTrackSnapshot;
+    if (!track || track.source !== "webdav" || !track._filePath) return;
+    const sid = String(trackId);
+    if (_pendingEnrichment.has(sid)) return;
+    const promise = enrichTrack(ctx, state, track).catch(() => {});
+    _pendingEnrichment.set(sid, promise);
+    promise.finally(() => _pendingEnrichment.delete(sid));
+  };
   ctx.vue.watch(
     () => ctx.stores.player.currentTrackId,
-    (trackId) => {
-      if (!trackId) return;
-      const track = ctx.stores.player.currentTrackSnapshot;
-      if (!track || track.source !== "webdav" || !track._filePath) return;
-      const sid = String(trackId);
-      if (_pendingEnrichment.has(sid)) return;
-      const promise = enrichTrack(ctx, state, track).catch(() => {});
-      _pendingEnrichment.set(sid, promise);
-      promise.finally(() => _pendingEnrichment.delete(sid));
-    },
+    _doEnrichCurrentTrack,
     { immediate: true },
+  );
+  ctx.vue.watch(
+    () => ctx.stores.player.currentTrackSnapshot,
+    _doEnrichCurrentTrack,
   );
 
   ctx.lyrics.registerResolver({
