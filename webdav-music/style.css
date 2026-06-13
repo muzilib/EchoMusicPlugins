@@ -512,3 +512,278 @@
   opacity: 1;
   background: color-mix(in srgb, var(--color-text-main) 8%, transparent);
 }
+
+/* ---- Batch Drawer（仿主应用 BatchActionDrawer） ---- */
+.webdav-batch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface-scrim-bg, rgba(0, 0, 0, 0.4));
+  z-index: 1100;
+  animation: webdav-fade-in 0.2s ease;
+}
+
+@keyframes webdav-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.webdav-batch-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(500px, 96vw);
+  background: var(--color-bg-main);
+  z-index: 1110;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  animation: webdav-slide-in 0.25s ease;
+}
+
+@keyframes webdav-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.webdav-batch-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px 20px;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+.webdav-batch-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.webdav-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.webdav-batch-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  background: var(--control-muted-bg, rgba(128, 128, 128, 0.08));
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.webdav-batch-action:hover:not(:disabled) {
+  transform: scale(1.02);
+  color: var(--color-primary);
+  background: var(--control-hover-bg, rgba(128, 128, 128, 0.12));
+}
+
+.webdav-batch-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.webdav-batch-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--color-text-main);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.webdav-batch-close:hover {
+  opacity: 1;
+  background: var(--control-hover-bg, rgba(128, 128, 128, 0.12));
+}
+
+/* ---- Batch Selection Bar ---- */
+.webdav-batch-selection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 12px 18px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+.webdav-batch-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 0;
+  padding-right: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.webdav-batch-count {
+  font-weight: 600;
+}
+
+/* ---- Batch List ---- */
+.webdav-batch-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 16px 18px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.webdav-batch-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.webdav-batch-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.webdav-batch-list::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.webdav-batch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.webdav-batch-row:hover {
+  background: var(--row-hover-bg, rgba(128, 128, 128, 0.06));
+}
+
+.webdav-batch-row.is-selected {
+  background: var(--row-selected-bg, color-mix(in srgb, var(--color-primary) 8%, transparent));
+}
+
+.webdav-batch-leading {
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ---- Checkbox（仿主应用 BatchActionDrawer 样式） ---- */
+.webdav-checkbox {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--control-checkbox-border, var(--color-border));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--control-checkbox-bg, var(--color-bg-main));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-card-base, white) 36%, transparent);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.webdav-checkbox:hover {
+  border-color: var(--control-checkbox-border-hover, var(--color-primary));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--control-checkbox-bg, white));
+}
+
+.webdav-checkbox.is-checked,
+.webdav-checkbox.is-indeterminate {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: white;
+}
+
+.webdav-checkbox-indeterminate {
+  width: 8px;
+  height: 2px;
+  background: white;
+  border-radius: 999px;
+}
+
+/* ---- Batch Card ---- */
+.webdav-batch-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.webdav-batch-song-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.webdav-batch-song-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-main);
+}
+
+.webdav-batch-row.is-selected .webdav-batch-song-title {
+  color: var(--color-primary);
+}
+
+.webdav-batch-song-artist {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-secondary, var(--color-text-subtle));
+}
+
+.webdav-batch-size {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 12px;
+  opacity: 0.5;
+  color: var(--color-text-secondary);
+}
+
+/* ---- Row Selected State ---- */
+.webdav-row.is-selected {
+  background: var(--row-selected-bg, color-mix(in srgb, var(--color-primary) 8%, transparent));
+}
+
+/* ---- Locate Flash Animation ---- */
+.webdav-row-flash {
+  animation: webdav-flash 1.2s ease-out;
+}
+
+@keyframes webdav-flash {
+  0% { background: color-mix(in srgb, var(--color-primary) 25%, transparent); }
+  100% { background: transparent; }
+}

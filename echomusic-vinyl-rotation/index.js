@@ -25,13 +25,13 @@ function injectVinylStyles() {
     .lyric-page .cover-wrapper {
       overflow: visible !important;
       border-radius: 0 !important;
-      width: 360px !important;
-      height: 360px !important;
-      min-width: 360px !important;
-      min-height: 360px !important;
+      width: 510px !important;
+      height: 510px !important;
+      min-width: 510px !important;
+      min-height: 510px !important;
       padding: 0 !important;
       margin: 0 !important;
-      position: relative !important;
+      position: absolute !important;
       filter: none !important;
       --shadow-cover: none !important;
     }
@@ -42,10 +42,10 @@ function injectVinylStyles() {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      width: 360px !important;
-      height: 360px !important;
-      min-width: 360px !important;
-      min-height: 360px !important;
+      width: 510px !important;
+      height: 510px !important;
+      min-width: 510px !important;
+      min-height: 510px !important;
     }
 
     .lyric-page {
@@ -59,12 +59,14 @@ function injectVinylStyles() {
     }
 
     .echo-vinyl-cover-wrap {
-      width: 160px !important;
-      height: 160px !important;
+      width: 225px !important;
+      height: 225px !important;
       border-radius: 50% !important;
       overflow: hidden !important;
       z-index: 2 !important;
-      position: relative !important;
+      position: absolute !important;
+      top: 143px !important;
+      left: 193px !important;
       animation: echoVinylSpin 20s linear infinite;
       animation-play-state: paused !important;
     }
@@ -81,8 +83,8 @@ function injectVinylStyles() {
 
     .echo-vinyl-disc {
       position: absolute !important;
-      width: 250px !important;
-      height: 250px !important;
+      width: 355px !important;
+      height: 355px !important;
       border-radius: 50% !important;
       z-index: 1 !important;
       background: #0d0d0f !important;
@@ -91,8 +93,8 @@ function injectVinylStyles() {
         0 10px 30px rgba(0,0,0,0.7),
         0 25px 70px rgba(0,0,0,0.5),
         inset 0 0 2px rgba(255,255,255,0.06) !important;
-      top: 55px !important;
-      left: 55px !important;
+      top: 78px !important;
+      left: 128px !important;
       animation: echoVinylSpin 20s linear infinite;
       animation-play-state: paused !important;
       overflow: hidden !important;
@@ -151,14 +153,14 @@ function injectVinylStyles() {
 
     .echo-vinyl-tonearm {
       position: absolute !important;
-      top: 20px !important;
-      left: 80px !important;
-      width: 300px !important;
-      height: 200px !important;
+      top: 28px !important;
+      left: 160px !important;
+      width: 425px !important;
+      height: 283px !important;
       z-index: 99999 !important;
       pointer-events: none !important;
       overflow: visible !important;
-      transform-origin: 100px 10px !important;
+      transform-origin: 142px 14px !important;
       transform: rotate(-30deg) !important;
       transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
@@ -191,13 +193,13 @@ function setupVinylElements() {
     parent = parent.parentElement;
   }
 
-  coverContainer.style.cssText = 'background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;border-radius:0!important;border:none!important;overflow:visible!important;position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:360px!important;height:360px!important;min-width:360px!important;min-height:360px!important;';
+  coverContainer.style.cssText = 'background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;border-radius:0!important;border:none!important;overflow:visible!important;position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:510px!important;height:510px!important;min-width:510px!important;min-height:510px!important;';
   
   // 彻底清除 cover-wrapper 的方形样式
   const coverWrapper = document.querySelector('.lyric-page .cover-wrapper');
   if (coverWrapper) {
     coverWrapper.className = '';
-    coverWrapper.style.cssText = 'background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;overflow:visible!important;border-radius:0!important;width:360px!important;height:360px!important;min-width:360px!important;min-height:360px!important;border:none!important;padding:0!important;margin:0!important;position:relative!important;outline:none!important;filter:none!important;';
+    coverWrapper.style.cssText = 'background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;overflow:visible!important;border-radius:0!important;width:510px!important;height:510px!important;min-width:510px!important;min-height:510px!important;border:none!important;padding:0!important;margin:0!important;position:absolute!important;outline:none!important;filter:none!important;';
     
     coverWrapper.querySelectorAll('*:not(.echo-vinyl-disc):not(.echo-vinyl-cover-wrap):not(.echo-vinyl-tonearm)').forEach(el => {
       el.style.background = 'transparent';
@@ -237,12 +239,14 @@ function setupVinylElements() {
     coverWrap = document.createElement('div');
     coverWrap.className = 'echo-vinyl-cover-wrap';
   }
-  coverWrap.style.width = '160px';
-  coverWrap.style.height = '160px';
+  coverWrap.style.width = '225px';
+  coverWrap.style.height = '225px';
   coverWrap.style.borderRadius = '50%';
   coverWrap.style.overflow = 'hidden';
   coverWrap.style.zIndex = '2';
-  coverWrap.style.position = 'relative';
+  coverWrap.style.position = 'absolute';
+  coverWrap.style.top = '143px';
+  coverWrap.style.left = '193px';
 
   const imgs = coverContainer.querySelectorAll('img');
   imgs.forEach(img => {

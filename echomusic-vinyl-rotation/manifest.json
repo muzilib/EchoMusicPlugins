@@ -1,8 +1,8 @@
 {
   "id": "echomusic-vinyl-rotation",
-  "name": "黑胶唱片旋转封面",
-  "version": "1.1.1",
-  "description": "让歌词页面的专辑封面变成圆形，并随音乐播放不断匀速旋转",
+  "name": "黑胶唱片",
+  "version": "1.1.2",
+ "description":"旋转的黑胶与落下的唱针，是网易云音乐最具仪式感的灵魂符号",
   "author": "吴彦祖",
   "main": "index.js",
   "icon": "logo.svg",

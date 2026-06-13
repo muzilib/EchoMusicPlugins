@@ -88,6 +88,41 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.2.1
+
+- 重写批量选择功能，完全参照主应用 BatchActionDrawer 抽屉样式（右侧滑入面板、全选/已选计数、复选框样式）
+
+### v1.2.0
+
+- 新增批量选择功能：点击「批量」按钮进入多选模式，支持全选、播放选中、添加到队列
+- 新增定位当前播放功能：点击定位按钮滚动到当前播放歌曲并高亮显示
+- 新增搜索过滤功能：输入关键词过滤歌曲列表，支持按标题和歌手搜索
+
+### v1.1.5
+
+- 修复重启应用后上次播放的歌曲没有封面和歌词的问题：新增 currentTrackSnapshot watcher，确保 snapshot 恢复后触发 enrichment
+
+### v1.1.4
+
+- 修复主题色无法跟随封面颜色变化的问题：替换 markRaw 包装的 currentTrackSnapshot 引用，确保主应用 watcher 触发
+
+### v1.1.3
+
+- 清理冗余 console.log 调试日志，仅保留 error/warn 级别
+- 简化播放逻辑：使用 ctx.playlist.playNext() / append() / replaceQueueAndPlay()
+- 修复 watcher 使用 ctx.stores.player 直接访问确保切歌时正确触发 enrich
+- 精简代码（1872 行 → 1636 行）
+
+### v1.1.2
+
+- 修复切换上一首/下一首时无法显示封面和歌词的问题
+- 修复随机模式下点击播放全部始终播放第一首歌的问题
+- 修复搜索优先模式下酷狗 API 被错误跳过导致无封面的问题
+- 修复封面图片 401/SSL 错误，改用 fetch + Authorization header 获取
+- 注册歌词解析器（ctx.lyrics.registerResolver），解决 fetchLyrics 覆盖歌词的时序问题
+- 使用主应用高级 API（ctx.player / ctx.playlist）简化播放逻辑
+- 清理冗余 console.log 调试日志
+
 ### v1.1.1
 
 - 修复设置页重置/保存按钮随内容滚动的问题，按钮固定在页面底部
