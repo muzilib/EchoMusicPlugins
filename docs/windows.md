@@ -81,7 +81,7 @@ export function deactivate(ctx) {
 
 ## 窗口入口
 
-窗口脚本可以导出 `activateWindow(ctx)`、`activate(ctx)` 或默认函数。入口上下文独立于主插件上下文，只提供窗口渲染所需的 Vue、容器、私有存储、CSS 注入、Now Playing、音频频谱、受控文件、本地进程和当前窗口控制 API。
+窗口脚本可以导出 `activateWindow(ctx)`、`activate(ctx)` 或默认函数。入口上下文独立于主插件上下文，只提供窗口渲染所需的 Vue、容器、私有存储、CSS 注入、Now Playing、字体、音频频谱、受控文件、本地进程和当前窗口控制 API。
 
 ```js
 export function activateWindow(ctx) {
@@ -130,7 +130,7 @@ export function activateWindow(ctx) {
 
 快照包含：
 
-- `playback`：当前歌曲、封面、时长、进度、播放状态、倍速和快照更新时间。
+- `playback`：当前歌曲、封面、时长、进度、播放状态、我喜欢状态、倍速和快照更新时间。
 - `lyric`：歌词行、当前行索引、翻译/音译开关、歌词偏移、加载状态。
 - `appearance`：深浅色、主题色、全局字体。
 
@@ -217,3 +217,5 @@ async function togglePin(ctx, settings) {
 窗口入口中的 `ctx.audio.spectrum` 与主插件入口一致，用于读取或订阅音频频谱。使用前仍需在 manifest 中声明 `capabilities.audioSpectrum: true`。
 
 窗口入口中的 `ctx.fs` 与主插件入口一致，用于将本地文件转换为可渲染 URL，或在声明 `capabilities.localFiles: true` 后扫描、读取本地媒体文件，以及写入当前插件目录内的缓存、图片或导出文件。
+
+窗口入口中的 `ctx.fonts` 与主插件入口一致，可通过 `getAll()` 获取系统字体列表，通过 `getOptions({ includeFollow: true })` 获取适合设置面板的字体选项，通过 `buildFamily(fontName)` 构建可直接用于 inline style 的 CSS `font-family`。

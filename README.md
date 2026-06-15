@@ -285,6 +285,7 @@ export default {
 | `ctx.lyrics`                                                          | 歌词稳定 API：`registerResolver(options)` 注册自定义歌词解析器（要求 `capabilities.lyrics: true`）、`getSnapshot()`、`onSnapshot(handler)`、`command(command)`                                                                                                                                                                                                                                                |
 | `ctx.lyricEffects`                                                    | 页面歌词动效 API：`register(options)` 注册歌词视觉效果（要求 `capabilities.lyricEffects: true`），支持注入 CSS class、挂载 overlay 装饰层、订阅歌词播放快照                                                                                                                                                                                                                                                    |
 | `ctx.appearance`                                                      | 外观快照 API：`getSnapshot()` / `onSnapshot(handler)`，读取深浅色、主题色和字体信息                                                                                                                                                                                                                                                                                                                           |
+| `ctx.fonts`                                                           | 系统字体 API：`getAll()` 获取字体名列表、`getOptions(options?)` 获取可直接传给宿主 `Select` 的选项、`buildFamily(fontName)` 构建 CSS `font-family` 字符串                                                                                                                                                                                                                                                     |
 | `ctx.kugou`                                                           | 调用 EchoMusic 内置酷狗业务接口，要求 manifest 声明 `capabilities.kugouApi: true`；鉴权信息由宿主自动注入                                                                                                                                                                                                                                                                                                     |
 | `ctx.storage`                                                         | 插件私有 KV 存储，按插件 id 自动隔离                                                                                                                                                                                                                                                                                                                                                                          |
 | `ctx.dialog.selectDirectory(options?)`                                | 打开系统文件夹选择对话框，返回 `{ canceled, paths }`                                                                                                                                                                                                                                                                                                                                                          |
@@ -295,7 +296,12 @@ export default {
 | `ctx.fs.readTextFile(filePath, options?)`                             | 读取本地文本文件片段，默认最多 1 MB，最大 4 MB，要求 manifest 声明 `capabilities.localFiles: true`                                                                                                                                                                                                                                                                                                            |
 | `ctx.fs.readFileBytes(filePath, options?)`                            | 读取本地文件字节片段，适合解析音频头部或标签，默认最多 1 MB，最大 4 MB，要求 manifest 声明 `capabilities.localFiles: true`                                                                                                                                                                                                                                                                                    |
 | `ctx.fs.writeFile(filePath, data, options?)`                          | 写入插件目录内文件，支持字符串、`ArrayBuffer`、`Uint8Array` 和 `{ type: "base64", data }`，默认不覆盖已有文件，最大 8 MB，要求 manifest 声明 `capabilities.localFiles: true`                                                                                                                                                                                                                                  |
+| `ctx.fs.deleteFile(filePath)`                                         | 删除插件目录内文件，仅删除文件不删除目录，要求 manifest 声明 `capabilities.localFiles: true`                                                                                                                                                                                                                                                                                                                  |
 | `ctx.appIcons.refresh()`                                              | 重新读取插件存储中的应用图标配置并尝试刷新托盘、任务栏/窗口和桌面快捷方式图标                                                                                                                                                                                                                                                                                                                                  |
+| `ctx.appIcons.restoreDefaultDesktopIcon()`                            | 恢复桌面快捷方式图标为默认（Windows/Linux，修改快捷方式文件）                                                                                                                                                                                                                                                                                                                                                |
+| `ctx.appIcons.restoreDefaultTaskbarIcon()`                            | 恢复任务栏快捷方式图标为默认（仅 Windows，修改快捷方式文件）                                                                                                                                                                                                                                                                                                                                                  |
+| `ctx.appIcons.setRuntimeWindowIcon(iconPath)`                         | 立即设置运行中窗口的任务栏/Dock 图标（所有平台，立即生效）                                                                                                                                                                                                                                                                                                                                                    |
+| `ctx.appIcons.restoreDefaultWindowIcon()`                             | 立即恢复运行中窗口的图标为默认（所有平台，立即生效）                                                                                                                                                                                                                                                                                                                                                          |
 | `ctx.process.launch(options)`                                         | 启动插件目录内的本地辅助程序，要求 manifest 声明 `capabilities.process: true`                                                                                                                                                                                                                                                                                                                                 |
 | `ctx.process.terminate(pid)`                                          | 终止当前插件通过 `ctx.process.launch()` 启动的进程                                                                                                                                                                                                                                                                                                                                                            |
 | `ctx.theme.surface.set(options)`                                      | 请求宿主调整主界面表面透明度和模糊效果，适合背景图、沉浸皮肤等插件                                                                                                                                                                                                                                                                                                                                            |
@@ -311,6 +317,7 @@ export default {
 | `ctx.electron.platform`                                               | 当前平台：`'darwin'` / `'win32'` / `'linux'`                                                                                                                                                                                                                                                                                                                                                                  |
 | `ctx.css.inject(cssText, options?)`                                   | 注入全局 CSS，禁用插件时自动清理                                                                                                                                                                                                                                                                                                                                                                              |
 | `ctx.commands.register(id, handler)`                                  | 注册插件命令                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `ctx.shortcuts.register(accelerator, handler)`                        | 注册自定义快捷键，支持 `'Ctrl+A'`、`'Shift+Right'`、`'CmdOrCtrl+S'` 等标准 Electron 加速器格式；返回清理函数，插件卸载时自动解绑                                                                                                                                                                                                                                                                             |
 | `ctx.events.onTrackChange(handler)`                                   | 监听当前曲目变化                                                                                                                                                                                                                                                                                                                                                                                              |
 | `ctx.events.onPlaybackChange(handler)`                                | 监听播放/暂停状态变化                                                                                                                                                                                                                                                                                                                                                                                         |
 | `ctx.dom.query(selector)` / `ctx.dom.queryAll(selector)`              | 查询主界面 DOM                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -330,6 +337,157 @@ const isMac = ctx.electron.platform === "darwin";
 const isWindows = ctx.electron.platform === "win32";
 const isLinux = ctx.electron.platform === "linux";
 ```
+
+### 文件操作
+
+插件可以通过 `ctx.fs` 读写插件目录内的文件。文件操作需要在 `manifest.json` 中声明：
+
+```json
+{
+  "capabilities": {
+    "localFiles": true
+  }
+}
+```
+
+#### 删除文件
+
+```js
+// 删除插件目录内的缓存文件
+const result = await ctx.fs.deleteFile('cache/temp.json');
+
+if (result.ok) {
+  console.log('已删除:', result.name);
+  console.log('文件之前存在:', result.existed);
+} else {
+  console.error('删除失败:', result.error);
+}
+
+// 批量清理缓存
+async function cleanCache(ctx) {
+  const cacheFiles = [
+    'cache/images.json',
+    'cache/metadata.json',
+    'temp/data.bin',
+  ];
+  
+  for (const file of cacheFiles) {
+    await ctx.fs.deleteFile(file);
+  }
+  
+  ctx.toast.success('缓存已清理');
+}
+```
+
+安全限制：
+- 只能删除插件自己目录内的文件
+- 不能删除目录，只能删除文件
+- 不能通过 `..` 或符号链接跳出插件目录
+- 删除不存在的文件不会报错（幂等性）
+
+### 应用图标管理
+
+插件可以通过 `ctx.appIcons` 管理应用图标。EchoMusic 提供两类图标API：
+
+#### 1. 运行时窗口图标（立即生效，所有平台）⭐
+
+直接作用于运行中的窗口，适合动态场景如主题切换、状态指示：
+
+```js
+// 设置自定义窗口图标（立即生效）
+const result = await ctx.appIcons.setRuntimeWindowIcon('/path/to/icon.ico');
+
+if (result.ok && result.applied) {
+  ctx.toast.success('窗口图标已更新');
+} else {
+  console.error('更新失败:', result.error);
+}
+
+// 恢复默认窗口图标（立即生效）
+await ctx.appIcons.restoreDefaultWindowIcon();
+```
+
+**主题图标系统示例：**
+
+```js
+export async function activate(ctx) {
+  const pluginDir = await ctx.electron.plugins.getDirectory();
+  const iconBasePath = `${pluginDir}/${ctx.id}/icons`;
+
+  // 监听系统主题变化
+  const updateIcon = async () => {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const iconPath = `${iconBasePath}/${isDark ? 'dark' : 'light'}.ico`;
+    
+    await ctx.appIcons.setRuntimeWindowIcon(iconPath);
+  };
+
+  // 初始应用
+  await updateIcon();
+
+  // 监听主题变化
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  mediaQuery.addEventListener('change', updateIcon);
+
+  // 清理
+  ctx.dispose(() => {
+    mediaQuery.removeEventListener('change', updateIcon);
+    ctx.appIcons.restoreDefaultWindowIcon();
+  });
+}
+```
+
+**状态指示示例：**
+
+```js
+// 根据播放状态切换图标
+ctx.events.onPlaybackChange((isPlaying) => {
+  const iconPath = isPlaying 
+    ? '/path/to/playing-icon.ico'
+    : '/path/to/paused-icon.ico';
+  ctx.appIcons.setRuntimeWindowIcon(iconPath);
+});
+```
+
+#### 2. 快捷方式图标（需要重启，持久化）
+
+修改桌面/任务栏快捷方式文件，适合持久化的图标更改：
+
+```js
+// 恢复桌面快捷方式图标为默认（Windows/Linux）
+const desktopResult = await ctx.appIcons.restoreDefaultDesktopIcon();
+
+if (desktopResult.ok && desktopResult.applied) {
+  ctx.toast.success('桌面图标已恢复（重启后完全生效）');
+} else {
+  console.error('恢复失败:', desktopResult.error);
+}
+
+// 恢复任务栏快捷方式图标为默认（仅Windows）
+if (ctx.electron.platform === 'win32') {
+  const taskbarResult = await ctx.appIcons.restoreDefaultTaskbarIcon();
+  
+  if (taskbarResult.ok && taskbarResult.applied) {
+    ctx.toast.success('任务栏快捷方式图标已恢复');
+  }
+}
+```
+
+**图标API对比：**
+
+| 功能 | 运行时窗口图标 | 快捷方式图标 |
+|------|--------------|-------------|
+| 作用对象 | 运行中的窗口 | 桌面/任务栏快捷方式 |
+| 生效时机 | 立即生效 | 需要重启或重新固定 |
+| Windows支持 | ✅ | ✅ |
+| macOS支持 | ✅ (Dock图标) | ❌ |
+| Linux支持 | ✅ | ✅ |
+| 使用场景 | 动态/临时更改 | 持久化更改 |
+
+**图标文件要求：**
+- Windows: `.ico` 格式（支持多尺寸）
+- macOS: `.icns` 或 `.png`
+- Linux: `.png` 或 `.svg`
 
 ### 本地辅助进程
 
@@ -379,7 +537,122 @@ export async function deactivate(ctx) {
 }
 ```
 
-该能力只是限制“从哪里启动”和“由谁确认”。启动后的程序拥有当前系统用户权限，可能访问本地文件、网络和系统资源；请只在确实需要原生能力且用户能够理解风险时使用。
+该能力只是限制”从哪里启动”和”由谁确认”。启动后的程序拥有当前系统用户权限，可能访问本地文件、网络和系统资源；请只在确实需要原生能力且用户能够理解风险时使用。
+
+### 注册快捷键
+
+插件可以使用 `ctx.shortcuts.register(accelerator, handler)` 注册自定义快捷键：
+
+```js
+export function activate(ctx) {
+  // 注册 Shift+Right 快进 10 秒
+  ctx.shortcuts.register('Shift+Right', () => {
+    const currentTime = ctx.player.currentTime.value;
+    const duration = ctx.player.duration.value;
+    const newTime = Math.min(duration, currentTime + 10);
+    ctx.player.seek(newTime);
+    ctx.toast.success('快进 10 秒');
+  });
+
+  // 注册 Shift+Left 快退 10 秒
+  ctx.shortcuts.register('Shift+Left', () => {
+    const currentTime = ctx.player.currentTime.value;
+    const newTime = Math.max(0, currentTime - 10);
+    ctx.player.seek(newTime);
+    ctx.toast.success('快退 10 秒');
+  });
+
+  // 使用 CmdOrCtrl（macOS 上是 Cmd，其他系统是 Ctrl）
+  ctx.shortcuts.register('CmdOrCtrl+K', () => {
+    ctx.toast.info('自定义快捷键触发');
+  });
+
+  // 多修饰键组合
+  ctx.shortcuts.register('Ctrl+Shift+P', () => {
+    const current = ctx.player.currentTime.value;
+    const duration = ctx.player.duration.value;
+    const progress = duration > 0 ? (current / duration * 100).toFixed(1) : 0;
+    ctx.toast.info(`播放进度: ${progress}%`);
+  });
+}
+```
+
+**支持的加速器格式：**
+- 单键：`'A'`, `'Space'`, `'Enter'`, `'Escape'`, `'F1'`-`'F24'`
+- 方向键：`'Left'`, `'Right'`, `'Up'`, `'Down'`
+- 组合键：`'Ctrl+A'`, `'Shift+Space'`, `'Alt+F4'`
+- 多修饰键：`'Ctrl+Shift+A'`, `'Cmd+Alt+Delete'`
+- 跨平台：`'CmdOrCtrl+S'` (macOS 上是 ⌘+S，其他系统是 Ctrl+S)
+
+**注意事项：**
+- 快捷键会在应用窗口获得焦点时生效，不是全局快捷键
+- 建议使用不常见的组合键，避免与应用内置快捷键冲突
+- `ctx.shortcuts.register()` 返回清理函数，插件卸载时会自动解绑
+- 同一个快捷键可以被多个插件注册，按注册顺序依次触发
+
+### 控制播放位置（快进快退）
+
+插件可以通过三种方式实现快进快退：
+
+#### 方式 1：直接使用 `ctx.player.seek()`
+
+```js
+export function activate(ctx) {
+  ctx.commands.register('fastForward', () => {
+    const currentTime = ctx.player.currentTime.value;
+    const duration = ctx.player.duration.value;
+    // 快进 5 秒，确保不超过歌曲总时长
+    const newTime = Math.min(duration, currentTime + 5);
+    ctx.player.seek(newTime);
+  }, { title: '快进 5 秒' });
+
+  ctx.commands.register('fastBackward', () => {
+    const currentTime = ctx.player.currentTime.value;
+    // 快退 5 秒，确保不小于 0
+    const newTime = Math.max(0, currentTime - 5);
+    ctx.player.seek(newTime);
+  }, { title: '快退 5 秒' });
+}
+```
+
+#### 方式 2：使用系统快捷键命令
+
+EchoMusic 2.2.6+ 支持系统级的 `seekForward` 和 `seekBackward` 命令，偏移量由用户设置：
+
+```js
+export function activate(ctx) {
+  // 使用系统快进快退设置（默认 5 秒）
+  ctx.shortcuts.register('Alt+Right', () => {
+    ctx.nowPlaying.command('seekForward');
+  });
+
+  ctx.shortcuts.register('Alt+Left', () => {
+    ctx.nowPlaying.command('seekBackward');
+  });
+}
+```
+
+#### 方式 3：百分比跳转
+
+```js
+export function activate(ctx) {
+  // 跳转到 25%、50%、75% 位置
+  ctx.shortcuts.register('Ctrl+1', () => {
+    const duration = ctx.player.duration.value;
+    ctx.player.seek(duration * 0.25);
+  });
+
+  ctx.shortcuts.register('Ctrl+2', () => {
+    const duration = ctx.player.duration.value;
+    ctx.player.seek(duration * 0.5);
+  });
+
+  ctx.shortcuts.register('Ctrl+3', () => {
+    const duration = ctx.player.duration.value;
+    ctx.player.seek(duration * 0.75);
+  });
+}
+```
 
 ### 响应式访问播放状态
 
@@ -773,6 +1046,32 @@ export function activate(ctx) {
 ```
 
 文件和文件夹选择由插件组件主动调用 `ctx.dialog.selectFiles(...)` / `ctx.dialog.selectDirectory(...)`。设置里通常保存本地路径，不是可直接渲染的 `file://` URL；需要展示或播放本地文件时，先通过 `ctx.fs.getFileUrl(filePath)` 转换。
+
+字体选择可以直接复用 `ctx.fonts` 和宿主 `Select` 组件。`getOptions()` 默认包含“系统默认”，传入 `includeFollow: true` 后会额外包含“跟随全局”：
+
+```js
+const fontOptions = ctx.vue.ref([]);
+
+ctx.fonts.getOptions({ includeFollow: true }).then((options) => {
+  fontOptions.value = options;
+});
+
+h(Select, {
+  filterable: true,
+  modelValue: draft.fontFamily || "follow",
+  options: fontOptions.value,
+  "onUpdate:modelValue": (value) => {
+    draft.fontFamily = String(value || "follow");
+  },
+});
+
+h("div", {
+  style:
+    draft.fontFamily && draft.fontFamily !== "follow"
+      ? { fontFamily: ctx.fonts.buildFamily(draft.fontFamily) }
+      : undefined,
+});
+```
 
 本地播放或本地媒体库插件应在 manifest 中声明 `capabilities.localFiles: true`，然后使用 `ctx.fs.listFiles()` 扫描用户选择的目录：
 
