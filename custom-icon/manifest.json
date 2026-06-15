@@ -1,7 +1,7 @@
 {
   "id": "custom-icon",
   "name": "自定义图标",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "description": "自定义托盘图标、任务栏图标、桌面快捷方式图标、启动画面以及启动音效。",
   "author": "Oneday5799",
   "icon": "icon.svg",

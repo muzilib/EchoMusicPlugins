@@ -670,7 +670,7 @@ const createSettingsComponent = (ctx) =>
 
       const renderSplashPreview = () => h("div", { style: "margin-bottom:14px" }, [
         h("div", { class: "custom-icon-preview-box wide" }, [
-          resolvedSplashUrl.value ? h("img", { src: resolvedSplashUrl.value, alt: "启动画面预览" }) : h("div", { class: "custom-icon-preview-empty" }, "选择图片后在此预览\n支持 .png/.jpg/.webp/.gif/.bmp"),
+          resolvedSplashUrl.value ? h("img", { src: resolvedSplashUrl.value, alt: "启动画面预览" }) : h("div", { class: "custom-icon-preview-empty", innerHTML: "选择图片后在此预览<br>支持 .png/.jpg/.webp/.gif/.bmp<br>启动画面中的部分功能来自群友@小栀（rinnki）" }),
         ]),
         renderStatus(),
       ]);
@@ -839,7 +839,7 @@ const registerSettings = (ctx) => {
   settingsDispose?.();
   settingsStyleDispose?.();
   settingsStyleDispose = ctx.css.inject(SETTINGS_PANEL_CSS, { id: "custom-icon-settings" });
-  settingsDispose = ctx.ui.settings.define({ title: "自定义图标", description: "自定义桌面图标、任务栏图标、托盘图标、桌面快捷方式图标以及启动画面", component: createSettingsComponent(ctx) });
+  settingsDispose = ctx.ui.settings.define({ title: "自定义图标", description: "自定义托盘图标、任务栏图标、桌面快捷方式图标、启动画面以及启动音效。", component: createSettingsComponent(ctx) });
 };
 
 export async function activate(ctx) {
