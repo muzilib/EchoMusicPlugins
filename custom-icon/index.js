@@ -167,10 +167,10 @@ let splashAudioTimer = null;
 const removeSplash = () => {
   if (splashTimer) { clearTimeout(splashTimer); splashTimer = null; }
   if (splashOverlay) {
-    splashOverlay.style.transition = "opacity 0.4s ease-out";
+    splashOverlay.style.transition = "opacity 0.2s ease-out";
     splashOverlay.style.opacity = "0";
     const el = splashOverlay;
-    setTimeout(() => el.remove(), 450);
+    setTimeout(() => el.remove(), 250);
     splashOverlay = null;
   }
 };
@@ -205,6 +205,31 @@ const playSplashAudio = async (ctx, settings) => {
   } catch {}
 };
 
+const cloneLogoToOverlay = (settings) => {
+  if (!splashOverlay) return;
+  splashOverlay.querySelectorAll(".splash-logo-clone").forEach((el) => el.remove());
+  const lv = document.querySelector(".loading-view");
+  if (!lv) return;
+  const main = lv.querySelector("main");
+  if (main) {
+    const clone = main.cloneNode(true);
+    clone.classList.add("splash-logo-clone");
+    clone.style.cssText = "position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:1;";
+    if (!settings.splashShowLogo) {
+      const logoDiv = clone.querySelector(":scope > div");
+      if (logoDiv) logoDiv.style.display = "none";
+    }
+    splashOverlay.appendChild(clone);
+  }
+  const footer = lv.querySelector("footer");
+  if (footer) {
+    const clone = footer.cloneNode(true);
+    clone.classList.add("splash-logo-clone");
+    clone.style.cssText = "position:absolute;bottom:40px;left:0;right:0;pointer-events:none;z-index:1;";
+    splashOverlay.appendChild(clone);
+  }
+};
+
 const resolveImageUrl = async (ctx, filePath) => {
   if (!filePath || !/\.gif$/i.test(filePath)) return "";
   try {
@@ -224,7 +249,7 @@ const applySplashCss = async (ctx, settings) => {
   const blurRule = settings.splashBlurAmount > 0 ? `.custom-splash-img{filter:blur(${settings.splashBlurAmount}px)!important}` : "";
   const overlayRule = settings.splashOverlayOpacity > 0 ? `.loading-view::after{content:''!important;position:absolute!important;inset:0!important;background:${settings.splashOverlayColor}!important;opacity:${settings.splashOverlayOpacity}!important;z-index:1!important;pointer-events:none!important}` : "";
   const bgRule = `background-image:url("${url}")!important;background-size:${sizeRule}!important;background-position:center center!important;background-repeat:no-repeat!important;`;
-  const logoRule = settings.splashShowLogo ? ".loading-view main{position:relative;z-index:2147483648}" : ".loading-view main>*{opacity:0!important}";
+  const logoRule = ".loading-view main>div{opacity:0!important}";
   const css = `.loading-view{${bgRule}${settings.splashBgColor ? `background-color:${settings.splashBgColor}!important;` : ""}}${logoRule}${blurRule}${overlayRule}`;
   splashCssDispose = ctx.css.inject(css, { id: "custom-splash-css" });
 };
@@ -254,7 +279,7 @@ const showSplash = async (ctx, settings) => {
   Object.assign(overlay.style, {
     position: "fixed", top: "0", left: "0", width: "100vw", height: "100vh",
     zIndex: "2147483647", background: `url("${url}") center/cover no-repeat`,
-    backgroundColor: settings.splashBgColor || "#000", opacity: "0", transition: "opacity 0.4s ease-out", pointerEvents: "none",
+    backgroundColor: settings.splashBgColor || "#000", opacity: "0", transition: "opacity 0.2s ease-out", pointerEvents: "none",
     ...(blurRule ? { filter: blurRule } : {}),
   });
   if (settings.splashOverlayOpacity > 0) {
@@ -267,7 +292,8 @@ const showSplash = async (ctx, settings) => {
   }
   document.body.appendChild(overlay);
   splashOverlay = overlay;
-  setTimeout(() => { if (splashOverlay) splashOverlay.style.opacity = "1"; }, 600);
+  cloneLogoToOverlay(settings);
+  setTimeout(() => { if (splashOverlay) splashOverlay.style.opacity = "1"; }, 50);
   splashTimer = setTimeout(removeSplash, duration);
 };
 
@@ -302,6 +328,7 @@ const createSplashObserver = (ctx) => {
           logoBox.style.border = "none";
         }
       }
+      cloneLogoToOverlay(s);
     }
   });
 };
