@@ -905,7 +905,7 @@ export async function activate(ctx) {
         showSplash(ctx, state.settings);
       }
     }
-    if (state.settings.splashAudioEnabled && state.settings.splashAudioPath) {
+    if (state.settings.splashAudioEnabled && state.settings.splashAudioPath && document.querySelector(".loading-view")) {
       playSplashAudio(ctx, state.settings);
     }
   }
