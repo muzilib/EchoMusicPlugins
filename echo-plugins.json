@@ -3,14 +3,14 @@
   "homepage": "https://github.com/hoowhoami/EchoMusicPlugins",
   "plugins": [
     {
-      "id": "dynamic-island-lyric",
-      "path": "dynamic-island-lyric",
-      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/dynamic-island-lyric",
+      "id": "example-plugin",
+      "path": "example-plugin",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/example-plugin",
       "tags": [
+        "demo",
         "lyrics",
         "floating-window",
-        "now-playing",
-        "desktop"
+        "now-playing"
       ]
     },
     {

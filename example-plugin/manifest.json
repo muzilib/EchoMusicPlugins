@@ -1,8 +1,8 @@
 {
-  "id": "dynamic-island-lyric",
+  "id": "example-plugin",
   "name": "灵动岛歌词",
   "version": "1.0.1",
-  "description": "在桌面顶部显示一个灵动岛式悬浮歌词胶囊，支持封面、播放控制、副歌词和透明穿透。",
+  "description": "EchoMusic 插件开发示例",
   "author": "EchoMusic",
   "icon": "icon.svg",
   "main": "index.js",
