@@ -186,6 +186,16 @@ ctx.nowPlaying.command("lyricOffsetReset");
 - `close()`
 - `setIgnoreMouseEvents(ignore)`
 - `setAlwaysOnTop(alwaysOnTop)`
+- `showOnTop(options?)`
+
+`showOnTop()` 会把当前窗口抬到最前一次，但**不改变置顶状态**（不会变成 `alwaysOnTop`）：窗口隐藏时先显示，最小化时先还原，然后抬升层级。它适合“呼出/聚焦”这类一次性动作，而不是常驻置顶。
+
+`options.focus` 默认 `true`：抢占焦点并激活窗口，能真正浮到其他应用窗口之上；设为 `false` 时退化为不抢焦点的轻抬（`showInactive` + 抬层），不打断当前输入，但在部分平台不保证压过其他应用的前台窗口。
+
+```js
+await ctx.window.showOnTop(); // 抢焦点，浮到最前
+await ctx.window.showOnTop({ focus: false }); // 不打断输入，仅抬层
+```
 
 拖拽和锁定穿透应由插件窗口 UI 自己决定，但最终移动与穿透仍通过宿主 IPC 执行。
 
@@ -209,8 +219,25 @@ async function togglePin(ctx, settings) {
 - `move(windowId, bounds)`
 - `getBounds(windowId)`
 - `setIgnoreMouseEvents(windowId, ignore)`
+- `showOnTop(windowId, options?)`
+
+`ctx.windows.showOnTop(windowId, options?)` 与窗口入口的 `ctx.window.showOnTop()` 行为一致，只是按 windowId 指定目标插件窗口；`options.focus` 默认 `true`。
 
 主入口也可以通过 `ctx.windows.show(windowId, { alwaysOnTop })` 临时切换置顶状态；窗口入口内更推荐使用 `ctx.window.setAlwaysOnTop()`。
+
+## 宿主窗口（主窗口 / mini 播放器）
+
+主插件入口和窗口入口都提供 `ctx.host`，用于把**宿主窗口**抬到最前（同样不改变置顶状态）：
+
+- `showOnTop(target?, options?)`，`target` 为 `'main' | 'mini-player'`，默认 `'main'`；`options.focus` 默认 `true`。
+
+```js
+await ctx.host.showOnTop(); // 等价于 'main'，呼出主窗口
+await ctx.host.showOnTop('mini-player'); // 呼出 mini 播放器窗口
+await ctx.host.showOnTop('main', { focus: false }); // 仅抬层，不抢焦点
+```
+
+`'mini-player'` 仅在 mini 播放器已开启时生效；未开启时返回 `{ ok: false, error: 'mini 播放器未开启' }`，不会自动切换到 mini 模式。桌面歌词有独立的置顶开关，不在 `ctx.host` 覆盖范围内。
 
 窗口入口中的 `ctx.process` 与主插件入口一致，也只会绑定当前插件 id。使用前仍需在 manifest 中声明 `capabilities.process: true`，详见主 README 的“本地辅助进程”章节。
 
