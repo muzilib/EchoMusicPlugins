@@ -34,6 +34,7 @@ let settingsDispose = null;
 let settingsStyleDispose = null;
 let channel = null;
 let applyingRemoteSettings = false;
+let playbackEventDisposers = [];
 
 const clamp = (value, min, max) =>
   Math.max(min, Math.min(max, Number(value) || 0));
@@ -582,6 +583,51 @@ const registerSettings = (ctx) => {
   });
 };
 
+/**
+ * 演示：订阅播放生命周期事件。
+ * 事件源是常驻的播放器事件总线，从 App 启动到退出全程存活，插件何时订阅都不会漏事件；
+ * 这些订阅会在插件禁用/卸载时由宿主自动退订，这里也在 deactivate 中显式清理一次。
+ */
+const registerPlaybackEventDemo = (ctx) => {
+  const summarize = (payload) => ({
+    track: payload.track?.title ?? null,
+    currentTime: Math.round(payload.currentTime),
+    duration: Math.round(payload.duration),
+  });
+  const log = (label, payload) =>
+    console.log(`[dynamic-island-lyric] ${label}`, summarize(payload));
+
+  playbackEventDisposers.push(
+    // immediate: true —— 订阅时若已在播放，立即用当前状态回调一次，便于晚加载插件同步初始态
+    ctx.events.onPlay((payload) => log("播放开始/恢复", payload), {
+      immediate: true,
+    }),
+    ctx.events.onPause((payload) => log("暂停", payload)),
+    // 仅在曲目自然播放结束时触发，手动切歌不会触发
+    ctx.events.onEnded((payload) => log("自然播放结束", payload)),
+    // onTrackChange 回调收到的是曲目快照本身（向后兼容的旧签名）
+    ctx.events.onTrackChange((track) =>
+      console.log("[dynamic-island-lyric] 切歌", track?.title ?? null),
+    ),
+    ctx.events.onSeek((payload) => log("跳转", payload)),
+    ctx.events.onError((payload) =>
+      console.warn("[dynamic-island-lyric] 播放错误", payload.error),
+    ),
+    // 进度事件已节流约 1 秒一次
+    ctx.events.onTimeUpdate((payload) => log("进度", payload)),
+  );
+};
+
+const disposePlaybackEventDemo = () => {
+  playbackEventDisposers.splice(0).forEach((off) => {
+    try {
+      off?.();
+    } catch (error) {
+      console.warn("[dynamic-island-lyric] 退订播放事件失败", error);
+    }
+  });
+};
+
 export async function activate(ctx) {
   state = ctx.vue.reactive({
     settings: normalizeSettings(await ctx.storage.get(STORAGE_KEY)),
@@ -592,6 +638,7 @@ export async function activate(ctx) {
     id: "dynamic-island-lyric-settings",
   });
   registerSettings(ctx);
+  registerPlaybackEventDemo(ctx);
 
   ctx.commands.register("show", () => showIsland(ctx), {
     title: "打开灵动岛歌词",
@@ -608,6 +655,7 @@ export async function activate(ctx) {
 }
 
 export async function deactivate(ctx) {
+  disposePlaybackEventDemo();
   settingsDispose?.();
   settingsDispose = null;
   settingsStyleDispose?.();

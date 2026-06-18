@@ -359,7 +359,10 @@ const createTextCoverUrl = (settings, context) => {
   const subtext = escapeXml(settings.subtext || "");
   const showSubtext = Boolean(settings.showSubtext && subtext);
   const mainY = showSubtext ? "48%" : "54%";
-  const backgroundColor = readCssColor("--color-primary", "#31cfa1");
+  // 优先使用主程序通过 context 提供的最终主题色（稳定、不随过渡动画抖动）；
+  // 设置面板预览等无 context 场景回退到实时读取 CSS 变量。
+  const backgroundColor =
+    (context && context.accentColor) || readCssColor("--color-primary", "#31cfa1");
   const textColor = resolveReadableTextColor(backgroundColor);
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
@@ -732,27 +735,6 @@ const setupChannel = (ctx) => {
   };
 };
 
-const watchThemeChanges = (ctx) => {
-  const stopWatch = ctx.vue.watch(
-    () => [
-      ctx.stores.theme.sourceColor,
-      ctx.stores.theme.coverColor,
-      ctx.stores.theme.isDark,
-      ctx.stores.settings.theme,
-    ],
-    () => syncFallback(ctx),
-  );
-  ctx.dispose(stopWatch);
-
-  if (typeof MutationObserver !== "function") return;
-  const observer = new MutationObserver(() => syncFallback(ctx));
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class", "style"],
-  });
-  ctx.dispose(() => observer.disconnect());
-};
-
 export async function activate(ctx) {
   state = ctx.vue.reactive({
     settings: normalizeSettings(await ctx.storage.get(STORAGE_KEY)),
@@ -761,7 +743,6 @@ export async function activate(ctx) {
 
   setupChannel(ctx);
   registerSettings(ctx);
-  watchThemeChanges(ctx);
   await applySettings(ctx, state.settings, { broadcast: false });
 }
 

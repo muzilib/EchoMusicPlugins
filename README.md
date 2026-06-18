@@ -322,15 +322,103 @@ export default {
 | `ctx.shortcuts.register(accelerator, handler)`                        | 注册自定义快捷键，支持 `'Ctrl+A'`、`'Shift+Right'`、`'CmdOrCtrl+S'` 等标准 Electron 加速器格式；返回清理函数，插件卸载时自动解绑                                                                                                                                                                                                                                                                             |
 | `ctx.events.onTrackChange(handler)`                                   | 监听当前曲目变化                                                                                                                                                                                                                                                                                                                                                                                              |
 | `ctx.events.onPlaybackChange(handler)`                                | 监听播放/暂停状态变化                                                                                                                                                                                                                                                                                                                                                                                         |
+| `ctx.events.onPlay(handler, options?)` / `onPause` / `onEnded` / `onSeek` / `onError` / `onTimeUpdate` / `on(event, handler)` | 监听播放生命周期事件，handler 收到统一负载 `{ event, track, trackId, currentTime, duration, isPlaying }`；详见下文「播放事件」                                                                                                                                                                                                                                                  |
 | `ctx.dom.query(selector)` / `ctx.dom.queryAll(selector)`              | 查询主界面 DOM                                                                                                                                                                                                                                                                                                                                                                                                |
 | `ctx.dom.observe(selector, handler)`                                  | 监听动态出现的 DOM，禁用插件时自动断开                                                                                                                                                                                                                                                                                                                                                                        |
 | `ctx.ui.settings.define(options)`                                     | 声明插件设置入口，必须提供自定义 Vue 组件                                                                                                                                                                                                                                                                                                                                                                     |
 | `ctx.ui.sidebar.addItem(item)`                                        | 注册正式侧边栏导航入口，支持路由匹配、高亮和折叠侧栏图标                                                                                                                                                                                                                                                                                                                                                      |
-| `ctx.ui.cover.setFallback(resolver)`                                  | 设置无封面或封面加载失败时的兜底图片 URL，resolver 必须同步返回字符串                                                                                                                                                                                                                                                                                                                                         |
+| `ctx.ui.cover.setFallback(resolver)`                                  | 设置无封面或封面加载失败时的兜底图片 URL，resolver 必须同步返回字符串；resolver 会收到包含尺寸、来源信息和当前主题色的 `context`，详见下文「封面兜底」                                                                                                                                                                                                                                                                                                         |
 | `ctx.ui.components`                                                   | 异步加载宿主 UI 组件：`Avatar`、`Badge`、`Button`、`Cover`、`Dialog`、`Drawer`、`Input`、`InputNumber`、`Popover`、`Scrollbar`、`Select`、`Slider`、`Switch`、`Tabs`、`TabsContent`、`TabsList`、`TabsTrigger`、`Textarea`、`Tooltip`                                                                                                                                                                         |
 | `ctx.icons`                                                           | 宿主图标库（Iconify 格式）                                                                                                                                                                                                                                                                                                                                                                                    |
 | `ctx.commands.execute(id, ...args)`                                   | 执行已注册的插件命令                                                                                                                                                                                                                                                                                                                                                                                          |
 | `ctx.dispose(fn)`                                                     | 注册资源清理回调，禁用时自动调用                                                                                                                                                                                                                                                                                                                                                                              |
+
+### 播放事件
+
+`ctx.events` 提供播放生命周期事件订阅。事件源是常驻的播放器事件总线，从 App 启动到退出全程存活，不依赖任何视图挂载，也不会因为插件加载得早或晚而漏事件——插件在 `activate` 时订阅即可接收此后所有事件。
+
+```js
+const off = ctx.events.onPlay((payload) => {
+  console.log("开始播放", payload.track?.title, payload.currentTime);
+});
+
+ctx.events.onEnded((payload) => {
+  // 当前曲目自然播放结束（手动切歌不会触发）
+  reportScrobble(payload.track);
+});
+
+ctx.events.onTimeUpdate((payload) => {
+  // 节流约 1 秒触发一次
+  updateProgress(payload.currentTime, payload.duration);
+});
+
+// 通用订阅
+ctx.events.on("seek", (payload) => console.log("跳转到", payload.currentTime));
+
+off(); // 主动退订；插件禁用/卸载时也会自动退订
+```
+
+可订阅的事件：
+
+| 事件 / 方法 | 触发时机 |
+| --- | --- |
+| `onPlay` / `"play"` | 开始或恢复播放 |
+| `onPause` / `"pause"` | 暂停 |
+| `onEnded` / `"ended"` | 当前曲目**自然播放结束**，手动切歌不触发 |
+| `onTrackChange` / `"trackchange"` | 切歌（覆盖快捷键、媒体控制、mini 播放器等所有路径） |
+| `onSeek` / `"seek"` | 进度跳转 |
+| `onError` / `"error"` | 播放失败，`payload.error` 为错误码 |
+| `onTimeUpdate` / `"timeupdate"` | 进度推进，**节流约 1 秒**一次 |
+
+统一负载 `payload`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `event` | 事件名 |
+| `track` | 当前曲目快照（可能为 `null`） |
+| `trackId` | 当前曲目 id（可能为 `null`） |
+| `currentTime` | 当前进度（秒） |
+| `duration` | 当前曲目时长（秒） |
+| `isPlaying` | 是否正在播放 |
+| `error` | 仅 `error` 事件存在，错误码 |
+
+每个订阅方法返回退订函数，且会在插件禁用/卸载时自动解绑；单个 handler 抛错不会影响播放器或其它插件。`onPlay(handler, { immediate: true })` 可在订阅时若当前已在播放，立即用当前状态回调一次，便于晚加载的插件同步初始状态（也可随时通过 `ctx.player.isPlaying` / `ctx.player.currentTrack` 同步查询当前状态）。
+
+> 说明：真正的播放引擎只在主窗口运行，这些事件在**主窗口运行时**精确触发。mini 播放器、桌面歌词是独立运行时、只镜像状态、不跑引擎，请在这些运行时改用 `ctx.nowPlaying.onSnapshot` 观察跨窗口同步的播放状态。
+
+### 封面兜底
+
+`ctx.ui.cover.setFallback(resolver)` 用于接管「无封面」或「封面加载失败」时的显示。同一时刻只有最后注册的兜底生效，禁用插件时自动清理。
+
+```js
+const dispose = ctx.ui.cover.setFallback({
+  id: "cover-fallback", // 可选，缺省为 "default"
+  resolveUrl(context) {
+    // 必须同步返回字符串（图片 URL / data: URI）；返回 null/undefined 表示放弃，回退到宿主默认封面
+    if (context.reason === "empty") {
+      // 无封面：用主题色生成一张占位图
+      return makeSvgCover(context.accentColor, context.size);
+    }
+    return null; // 封面加载失败时交还宿主默认处理
+  },
+});
+```
+
+`resolveUrl(context)` 的 `context` 字段：
+
+| 字段             | 说明                                                                 |
+| ---------------- | -------------------------------------------------------------------- |
+| `url`            | 原始封面地址（可能为空字符串）                                        |
+| `normalizedUrl`  | 宿主归一化后的封面地址                                                |
+| `failedUrl`      | 加载失败的地址（仅 `reason === "error"` 时有值）                      |
+| `size`           | 期望的封面尺寸（像素）                                                |
+| `reason`         | `"empty"`（无封面）或 `"error"`（封面加载失败）                       |
+| `scope`          | 调用场景标识，如 `"cover"`、`"lyric-background"`                      |
+| `alt`            | 封面的可选替代文本                                                    |
+| `accentColor`    | 当前**最终主题色**（已按深浅色归一化的 hex），稳定值，不随主题过渡动画逐帧抖动 |
+| `accentColorRgb` | 上述主题色的 `"r, g, b"` 形式，方便拼 `rgba()`                        |
+
+需要让兜底封面跟随主题色时，请直接读取 `context.accentColor` / `context.accentColorRgb`，**不要**自己去探针读取 `--color-primary` 等 CSS 变量或监听 `document` 的样式变化：宿主主题色切换带有过渡动画，逐帧读取会拿到中间色，监听样式变化还会导致封面在列表中反复闪烁。`context.accentColor` 已是动画的目标终值，且 resolver 读取它后，主题色变化会自动驱动相关封面重绘，无需插件自行监听。
 
 ### 平台判断
 
@@ -729,7 +817,6 @@ export function activate(ctx) {
         url: track.audioUrl,
         quality: "flac",
         effect: "none",
-        timeLength: (track.duration || 0) * 1000,
       };
     },
   });
@@ -744,7 +831,6 @@ export function activate(ctx) {
   quality?: "128" | "320" | "flac" | "high" | "super";
   effect?: "none";
   loudness?: { lufs: number; gain: number; peak: number };
-  timeLength?: number; // 毫秒
 }
 ```
 

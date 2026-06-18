@@ -1,7 +1,7 @@
 {
   "id": "cover-fallback",
   "name": "封面兜底",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "自定义无封面或封面加载失败时的显示内容，支持文字渲染和自定义图片。",
   "author": "EchoMusic",
   "icon": "icon.svg",
@@ -10,6 +10,6 @@
     "miniPlayer": true
   },
   "requires": {
-    "echoMusicVersion": ">=2.2.6-beta.9"
+    "echoMusicVersion": ">=2.2.7-beta.9"
   }
 }

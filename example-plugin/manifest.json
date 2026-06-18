@@ -1,13 +1,13 @@
 {
   "id": "example-plugin",
   "name": "插件DEMO",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "EchoMusic 插件开发示例",
   "author": "EchoMusic",
   "icon": "icon.svg",
   "main": "index.js",
   "requires": {
-    "echoMusicVersion": ">=2.2.6-beta.21"
+    "echoMusicVersion": ">=2.2.7-beta.9"
   },
   "contributes": {
     "windows": [
