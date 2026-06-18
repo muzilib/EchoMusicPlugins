@@ -201,6 +201,19 @@
         "icons",
         "splash-screen"
       ]
+    },
+    {
+      "id": "echo_music-blue_archive-theme",
+      "name": "Venti1112的主题包",
+      "description": "本意是想做一个蔚蓝档案主题包，结果发现貌似挺大众化的，反正你自己调一下设置吧（",
+      "author": "venti1112",
+      "path": "",
+      "repo": "https://github.com/venti1112/echo_music-blue_archive-theme",
+      "homepage": "https://github.com/venti1112/echo_music-blue_archive-theme",
+      "tags": [
+        "theme",
+        "beautify"
+      ]
     }
   ]
 }
