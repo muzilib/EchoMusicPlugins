@@ -98,6 +98,7 @@ EchoMusicPlugins/
 - 批量抽屉样式完全匹配主应用 `BatchActionDrawer`
 - 修复切歌时封面空白闪烁问题：创建歌曲时立即使用兜底封面
 - 修复吸顶收起后缺少批量按钮的问题
+- 修复点击暂停图标不暂停的问题：使用 `ctx.player.toggle()` 切换播放/暂停
 - 代码优化：缓存重复 `buildAuthHeader` 调用、移除冗余代码、提取常量
 
 ### v1.3.1

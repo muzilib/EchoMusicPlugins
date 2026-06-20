@@ -1634,7 +1634,7 @@ const createBrowserPage = (ctx, state) => {
                               : !isDir ? (
                                   isActive
                                     ? [
-                                        h("div", { class: "absolute inset-0 flex items-center justify-center text-primary cursor-pointer", onClick: (e) => { e.stopPropagation(); playSong(entry); } }, [
+                                        h("div", { class: "absolute inset-0 flex items-center justify-center text-primary cursor-pointer", onClick: (e) => { e.stopPropagation(); ctx.player.toggle(); } }, [
                                           h(Icon, { icon: isPlaying ? ctx.icons.iconPause : ctx.icons.iconPlay, width: 14, height: 14 }),
                                         ]),
                                       ]
