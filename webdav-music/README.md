@@ -88,6 +88,18 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.3.2
+
+- 使用主应用 `Tabs/TabsList/TabsTrigger` 替换自定义库标签栏
+- 使用主应用 `Drawer` 替换自定义批量操作抽屉，移除约 180 行自定义 CSS
+- 使用主应用 `DetailPageActionRow` 替换手动操作按钮
+- 使用主应用 `Badge` 组件替换手动角标
+- 使用主应用 `Scrollbar` 组件替换批量抽屉内原生滚动条
+- 批量抽屉样式完全匹配主应用 `BatchActionDrawer`
+- 修复切歌时封面空白闪烁问题：创建歌曲时立即使用兜底封面
+- 修复吸顶收起后缺少批量按钮的问题
+- 代码优化：缓存重复 `buildAuthHeader` 调用、移除冗余代码、提取常量
+
 ### v1.3.1
 
 - 使用主应用 `Tabs/TabsList/TabsTrigger` 替换自定义库标签栏

@@ -6,6 +6,7 @@
 /* ---- Constants ---- */
 const STORAGE_KEY = "settings";
 const CHECK_SVG = '<path d="M13.854 3.646a.5.5 0 1 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" fill="currentColor"/>';
+const FOLDER_SVG = '<path d="M947.2 969.728h-870.4c-42.496 0-76.8-34.304-76.8-76.8V131.072c0-42.496 34.304-76.8 76.8-76.8h449.024c42.496 0 76.8 34.304 76.8 76.8v68.608c0 14.336 11.264 25.6 25.6 25.6H947.2c42.496 0 76.8 34.304 76.8 76.8v590.848c0 42.496-34.304 76.8-76.8 76.8z m-870.4-864.256c-14.336 0-25.6 11.264-25.6 25.6v762.368c0 14.336 11.264 25.6 25.6 25.6h870.4c14.336 0 25.6-11.264 25.6-25.6V302.08c0-14.336-11.264-25.6-25.6-25.6h-318.976c-42.496 0-76.8-34.304-76.8-76.8v-68.608c0-14.336-11.264-25.6-25.6-25.6H76.8z" fill="#ffffff"/><path d="M948.224 155.136h-263.68c-14.336 0-25.6-11.264-25.6-25.6s11.264-25.6 25.6-25.6h263.68c14.336 0 25.6 11.264 25.6 25.6s-11.776 25.6-25.6 25.6z" fill="#ffffff"/>';
 const AUDIO_EXTENSIONS = [
   "mp3", "flac", "wav", "aac", "ogg", "wma",
   "m4a", "ape", "opus", "aiff", "alac", "dsf", "dff",
@@ -330,25 +331,19 @@ const syncToStores = (ctx, songId, patch) => {
         const authHeader = lib ? buildAuthHeader(lib) : null;
         const rawCoverUrl = patch.coverUrl || snapshotForSmtc.coverUrl || snapshotForSmtc.cover || _fallbackCoverUrlRef.value;
         (async () => {
+          let coverUrl;
           try {
-            const coverUrl = await convertCoverForSmtc(rawCoverUrl, authHeader);
-            window.electron.mediaControls.updateMetadata({
-              title: snapshotForSmtc.title || "未知歌曲",
-              artist: snapshotForSmtc.artist || "未知歌手",
-              album: snapshotForSmtc.album || "",
-              durationMs: (snapshotForSmtc.duration || 0) * 1000,
-              coverUrl,
-            });
-          } catch (e) {
-            const defaultCoverUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAFRABAQAAAAAAAAAAAAAAAAAAAAf/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8ApgAH/9k=';
-            window.electron.mediaControls.updateMetadata({
-              title: snapshotForSmtc.title || "未知歌曲",
-              artist: snapshotForSmtc.artist || "未知歌手",
-              album: snapshotForSmtc.album || "",
-              durationMs: (snapshotForSmtc.duration || 0) * 1000,
-              coverUrl: defaultCoverUrl,
-            });
+            coverUrl = await convertCoverForSmtc(rawCoverUrl, authHeader);
+          } catch {
+            coverUrl = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAFRABAQAAAAAAAAAAAAAAAAAAAAf/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8ApgAH/9k=";
           }
+          window.electron.mediaControls.updateMetadata({
+            title: snapshotForSmtc.title || "未知歌曲",
+            artist: snapshotForSmtc.artist || "未知歌手",
+            album: snapshotForSmtc.album || "",
+            durationMs: (snapshotForSmtc.duration || 0) * 1000,
+            coverUrl,
+          });
         })();
       }
     }
@@ -397,8 +392,6 @@ const enrichFromKugouApi = async (ctx, song) => {
     if (!lists.length) return;
     const match = lists[0];
     if (!match) return;
-    const hasValidCoverAfterSearch = song.coverUrl && /^https?:\/\//.test(song.coverUrl);
-    if (hasValidCoverAfterSearch && song.lyric) return;
     const fileHash = match.FileHash;
     const coverUrl = formatPicUrl(match.Image || match.trans_param?.union_cover || match.cover || "");
     const albumName = match.AlbumName || "";
@@ -550,12 +543,6 @@ const getActiveLibrary = (settings) => {
   return settings.libraries.find((lib) => lib.id === settings.activeLibraryId) || settings.libraries[0];
 };
 
-/** 根据库 ID 获取库配置 */
-const getLibraryById = (settings, libraryId) => {
-  if (!settings || !settings.libraries) return null;
-  return settings.libraries.find((lib) => lib.id === libraryId);
-};
-
 /** 生成唯一的库 ID */
 const generateLibraryId = () => "lib_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -565,7 +552,7 @@ const isAudioFile = (name) => {
   return AUDIO_EXTENSIONS.includes(name.slice(dot + 1).toLowerCase());
 };
 const isCoverFile = (name) =>
-  COVER_NAMES.some((c) => name.toLowerCase() === c.toLowerCase());
+  COVER_NAMES.some((c) => name.toLowerCase() === c);
 const parseTitleArtist = (filename) => {
   const dot = filename.lastIndexOf(".");
   let base = dot > 0 ? filename.slice(0, dot) : filename;
@@ -1283,7 +1270,8 @@ const createBrowserPage = (ctx, state) => {
             let coverUrl = "";
             if (coverFiles.length > 0) {
               try {
-                const coverRes = await fetch(joinUrl(lib.serverUrl, folderPath + coverFiles[0].name), buildAuthHeader(lib) ? { headers: { Authorization: buildAuthHeader(lib) } } : {});
+                const auth = buildAuthHeader(lib);
+                const coverRes = await fetch(joinUrl(lib.serverUrl, folderPath + coverFiles[0].name), auth ? { headers: { Authorization: auth } } : {});
                 if (coverRes.ok) coverUrl = URL.createObjectURL(await coverRes.blob());
               } catch {}
             }
@@ -1432,7 +1420,8 @@ const createBrowserPage = (ctx, state) => {
         let coverUrl = "";
         if (coverFiles.length > 0) {
           try {
-            const coverRes = await fetch(joinUrl(lib.serverUrl, normDir + coverFiles[0].name), buildAuthHeader(lib) ? { headers: { Authorization: buildAuthHeader(lib) } } : {});
+            const auth = buildAuthHeader(lib);
+            const coverRes = await fetch(joinUrl(lib.serverUrl, normDir + coverFiles[0].name), auth ? { headers: { Authorization: auth } } : {});
             if (coverRes.ok) coverUrl = URL.createObjectURL(await coverRes.blob());
           } catch {}
         }
@@ -1453,6 +1442,12 @@ const createBrowserPage = (ctx, state) => {
       });
 
       const hasLibraries = computed(() => state.settings.libraries && state.settings.libraries.length > 0);
+
+      // 预计算歌曲序号，避免 O(n²) 的逐行 filter
+      const songIndexMap = computed(() => {
+        let n = 0;
+        return filteredEntries.value.map((e) => e.isCollection ? null : ++n);
+      });
 
       return () => {
         if (!hasLibraries.value) {
@@ -1611,8 +1606,8 @@ const createBrowserPage = (ctx, state) => {
                         h("p", { class: "webdav-empty-desc" }, "没有找到音乐文件"),
                       ])
                     : filteredEntries.value.map((entry, idx) => {
-                        const isDir = entry.isCollection;
-                        const fileIdx = isDir ? null : filteredEntries.value.filter((e, i) => i <= idx && !e.isCollection).length;
+                          const isDir = entry.isCollection;
+                          const fileIdx = isDir ? null : songIndexMap.value[idx];
                         const filePath = normalizeDir(currentPath.value) + entry.name;
                         const songId = generateSongId(filePath);
                         const isActive = !isDir && String(ctx.stores.player.currentTrackId) === String(songId);
@@ -1656,7 +1651,7 @@ const createBrowserPage = (ctx, state) => {
                           h("div", { class: "webdav-col-song" }, [
                             h("div", { class: "webdav-cover" }, [
                               isDir
-                                ? h("svg", { viewBox: "0 0 1024 1024", width: 22, height: 22, class: "webdav-folder-icon", innerHTML: '<path d="M947.2 969.728h-870.4c-42.496 0-76.8-34.304-76.8-76.8V131.072c0-42.496 34.304-76.8 76.8-76.8h449.024c42.496 0 76.8 34.304 76.8 76.8v68.608c0 14.336 11.264 25.6 25.6 25.6H947.2c42.496 0 76.8 34.304 76.8 76.8v590.848c0 42.496-34.304 76.8-76.8 76.8z m-870.4-864.256c-14.336 0-25.6 11.264-25.6 25.6v762.368c0 14.336 11.264 25.6 25.6 25.6h870.4c14.336 0 25.6-11.264 25.6-25.6V302.08c0-14.336-11.264-25.6-25.6-25.6h-318.976c-42.496 0-76.8-34.304-76.8-76.8v-68.608c0-14.336-11.264-25.6-25.6-25.6H76.8z" fill="#ffffff"/><path d="M948.224 155.136h-263.68c-14.336 0-25.6-11.264-25.6-25.6s11.264-25.6 25.6-25.6h263.68c14.336 0 25.6 11.264 25.6 25.6s-11.776 25.6-25.6 25.6z" fill="#ffffff"/>' })
+                                ? h("svg", { viewBox: "0 0 1024 1024", width: 22, height: 22, class: "webdav-folder-icon", innerHTML: FOLDER_SVG })
                                 : h("img", { src: _fallbackCoverUrlRef.value, class: "webdav-cover-img", alt: "cover" }),
                             ]),
                             h("div", { class: "webdav-song-info" }, [
@@ -1684,7 +1679,24 @@ const createBrowserPage = (ctx, state) => {
             ]),
           ] : null,
           // 批量操作抽屉（使用主应用 Drawer 组件）
-          h(Drawer, { open: showBatchDrawer.value, "onUpdate:open": (v) => { showBatchDrawer.value = v; }, side: "right", overlayClass: "batch-drawer-overlay", panelClass: "batch-drawer" }, {
+          h(Drawer, {
+            open: showBatchDrawer.value,
+            "onUpdate:open": (v) => { showBatchDrawer.value = v; },
+            side: "right",
+            overlayStyle: { background: "var(--surface-scrim-bg)" },
+            panelStyle: {
+              padding: "0",
+              boxShadow: "none",
+              width: "min(600px, 96vw)",
+              top: "0",
+              bottom: "0",
+              left: "auto",
+              right: "0",
+              borderRadius: "10px 0 0 10px",
+              border: "none",
+              background: "var(--color-bg-main)",
+            },
+          }, {
             default: () => h("div", { class: "flex flex-col h-full" }, [
               // 头部
               h("div", { class: "batch-header" }, [

@@ -437,17 +437,6 @@
 }
 
 /* ---- Batch Drawer（与主应用 BatchActionDrawer 一致） ---- */
-:global(.batch-drawer-overlay) {
-  background: var(--surface-scrim-bg);
-}
-
-:global(.batch-drawer) {
-  padding: 0;
-  box-shadow: none;
-  width: min(600px, 96vw);
-  top: 0;
-  bottom: 0;
-}
 
 .batch-header {
   display: grid;
