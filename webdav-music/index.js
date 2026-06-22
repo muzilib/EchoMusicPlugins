@@ -694,6 +694,17 @@ const webdavFetchRaw = async (settings, path, options = {}) => {
   const url = buildAuthUrl(settings, path);
   return fetch(url, { ...options });
 };
+/** 从 PROPFIND 结果中检测并获取文件夹封面 URL */
+const fetchFolderCover = async (lib, dirPath, results) => {
+  const coverFiles = results.filter((e) => !e.isCollection && isCoverFile(e.name));
+  if (coverFiles.length === 0) return "";
+  try {
+    const auth = buildAuthHeader(lib);
+    const res = await fetch(joinUrl(lib.serverUrl, dirPath + coverFiles[0].name), auth ? { headers: { Authorization: auth } } : {});
+    if (res.ok) return URL.createObjectURL(await res.blob());
+  } catch {}
+  return "";
+};
 const generateSongId = (path) => {
   let hash = 0;
   for (let i = 0; i < path.length; i++) {
@@ -858,7 +869,7 @@ const ABOUT_HTML = `<div class="webdav-about">
 </ol>
 
 <h2>依赖</h2>
-<p>EchoMusic &gt;= 2.2.6-beta.11</p>
+<p>EchoMusic &gt;= 2.2.7-beta.13</p>
 
 <h2>作者</h2>
 <p>Oneday5799</p>
@@ -923,8 +934,8 @@ const createSettingsPanel = (ctx, state) => {
       };
 
       const formRow = (label, input, hint) =>
-        h("div", { style: "display: flex; align-items: center; gap: 12px;" }, [
-          h("label", { style: "width: 80px; flex-shrink: 0; font-size: 13px; color: var(--color-text-main); text-align: right;" }, label),
+        h("div", { style: "display: flex; align-items: flex-start; gap: 12px;" }, [
+          h("label", { style: "width: 80px; flex-shrink: 0; font-size: 13px; color: var(--color-text-main); text-align: right; padding-top: 7px;" }, label),
           h("div", { style: "flex: 1; display: flex; flex-direction: column; gap: 2px;" }, [
             input,
             hint ? h("span", { style: "font-size: 11px; color: var(--color-text-secondary); margin: 0;" }, hint) : null,
@@ -970,27 +981,32 @@ const createSettingsPanel = (ctx, state) => {
                 formRow("名称", h(Input, {
                   modelValue: lib.name,
                   placeholder: "留空则显示根目录名称",
+                  inputClass: "!h-9 !rounded-lg !pl-3 !pr-3 !text-[13px]",
                   "onUpdate:modelValue": (v) => updateLibrary(lib.id, "name", String(v ?? "")),
                 }), "显示在浏览页面的标签页名称"),
                 formRow("地址", h(Input, {
                   modelValue: lib.serverUrl,
                   placeholder: "https://webdav.example.com",
+                  inputClass: "!h-9 !rounded-lg !pl-3 !pr-3 !text-[13px]",
                   "onUpdate:modelValue": (v) => updateLibrary(lib.id, "serverUrl", String(v ?? "")),
                 })),
                 formRow("用户名", h(Input, {
                   modelValue: lib.username,
                   placeholder: "可选，留空表示无需认证",
+                  inputClass: "!h-9 !rounded-lg !pl-3 !pr-3 !text-[13px]",
                   "onUpdate:modelValue": (v) => updateLibrary(lib.id, "username", String(v ?? "")),
                 })),
                 formRow("密码", h(Input, {
                   modelValue: lib.password,
                   placeholder: "可选",
                   type: "password",
+                  inputClass: "!h-9 !rounded-lg !pl-3 !pr-3 !text-[13px]",
                   "onUpdate:modelValue": (v) => updateLibrary(lib.id, "password", String(v ?? "")),
                 })),
                 formRow("根目录", h(Input, {
                   modelValue: lib.rootPath,
                   placeholder: "/",
+                  inputClass: "!h-9 !rounded-lg !pl-3 !pr-3 !text-[13px]",
                   "onUpdate:modelValue": (v) => updateLibrary(lib.id, "rootPath", String(v ?? "/")),
                 }), "浏览音乐文件的起始路径，默认为根目录 /"),
                 h("div", { style: "display: flex; justify-content: flex-end;" }, [
@@ -1268,15 +1284,7 @@ const createBrowserPage = (ctx, state) => {
             const results = await propfind(ctx, lib, folderPath);
             const files = results.filter((e) => !e.isCollection && isAudioFile(e.name)).sort((a, b) => a.name.localeCompare(b.name));
             if (files.length === 0) { ctx.toast.info("文件夹内没有音乐文件"); return; }
-            const coverFiles = results.filter((e) => !e.isCollection && isCoverFile(e.name));
-            let coverUrl = "";
-            if (coverFiles.length > 0) {
-              try {
-                const auth = buildAuthHeader(lib);
-                const coverRes = await fetch(joinUrl(lib.serverUrl, folderPath + coverFiles[0].name), auth ? { headers: { Authorization: auth } } : {});
-                if (coverRes.ok) coverUrl = URL.createObjectURL(await coverRes.blob());
-              } catch {}
-            }
+            const coverUrl = await fetchFolderCover(lib, folderPath, results);
             const songs = files.map((entry) => createSongObject(entry.name, folderPath + entry.name, { album: folderName, coverUrl, libraryId: lib.id }));
             ctx.playlist.append(songs);
             ctx.toast.success(`已添加 ${songs.length} 首到队列`);
@@ -1332,18 +1340,7 @@ const createBrowserPage = (ctx, state) => {
           const selfName = dirPath.slice(0, -1).split("/").filter(Boolean).pop() || "";
           const dirs = results.filter((e) => e.isCollection && e.name && e.name !== selfName).sort((a, b) => a.name.localeCompare(b.name));
           const files = results.filter((e) => !e.isCollection && isAudioFile(e.name)).sort((a, b) => a.name.localeCompare(b.name));
-          const coverFiles = results.filter((e) => !e.isCollection && isCoverFile(e.name));
-          if (coverFiles.length > 0) {
-            const coverUrl = joinUrl(lib.serverUrl, dirPath + coverFiles[0].name);
-            const authHeader = buildAuthHeader(lib);
-            try {
-              const res = await fetch(coverUrl, authHeader ? { headers: { Authorization: authHeader } } : {});
-              if (res.ok) {
-                const blob = await res.blob();
-                coverCache.value[dirPath] = URL.createObjectURL(blob);
-              }
-            } catch {}
-          }
+          coverCache.value[dirPath] = await fetchFolderCover(lib, dirPath, results);
           entries.value = [...dirs, ...files];
           librarySongCounts.value[lib.id] = files.length;
         } catch (err) { error.value = "加载目录失败: " + (err.message || "未知错误"); }
@@ -1437,15 +1434,7 @@ const createBrowserPage = (ctx, state) => {
         catch (err) { ctx.toast.danger("无法读取文件夹"); return; }
         const files = results.filter((e) => !e.isCollection && isAudioFile(e.name)).sort((a, b) => a.name.localeCompare(b.name));
         if (files.length === 0) { ctx.toast.info("文件夹内没有音乐文件"); return; }
-        const coverFiles = results.filter((e) => !e.isCollection && isCoverFile(e.name));
-        let coverUrl = "";
-        if (coverFiles.length > 0) {
-          try {
-            const auth = buildAuthHeader(lib);
-            const coverRes = await fetch(joinUrl(lib.serverUrl, normDir + coverFiles[0].name), auth ? { headers: { Authorization: auth } } : {});
-            if (coverRes.ok) coverUrl = URL.createObjectURL(await coverRes.blob());
-          } catch {}
-        }
+        const coverUrl = await fetchFolderCover(lib, normDir, results);
         const songs = files.map((entry) => createSongObject(entry.name, normDir + entry.name, { album: folderName, coverUrl, libraryId: lib.id }));
         enrichSong(songs[0]).catch(() => {});
         try {
@@ -2017,4 +2006,7 @@ export async function activate(ctx) {
 export function deactivate(_ctx) {
   state = null;
   _ctx = null;
+  _enrichedLyrics.clear();
+  _pendingEnrichment.clear();
+  _songLibraryCache.clear();
 }

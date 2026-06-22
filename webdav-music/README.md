@@ -88,6 +88,14 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.3.4
+
+- 提取 `fetchFolderCover` 辅助函数，消除 3 处封面检测重复代码
+- 清理 `deactivate()` 中的模块级缓存（`_enrichedLyrics`、`_pendingEnrichment`、`_songLibraryCache`），防止内存泄漏
+- 修复「关于」页面依赖版本与 manifest.json 不一致的问题
+- 设置页输入框样式改为主应用原生紧凑样式（`h-9`、`rounded-lg`）
+- 设置页标签文字与输入框顶部对齐
+
 ### v1.3.3
 
 - 新增歌词选择功能：拦截主应用 `fetchLyricCandidates`，对 WebDAV 歌曲使用关键词（歌手+歌名）搜索酷狗歌词
