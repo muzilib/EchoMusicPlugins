@@ -88,6 +88,15 @@ EchoMusicPlugins/
 
 ## 更新日志
 
+### v1.3.3
+
+- 新增歌词选择功能：拦截主应用 `fetchLyricCandidates`，对 WebDAV 歌曲使用关键词（歌手+歌名）搜索酷狗歌词
+- 新增恢复默认歌词：右键菜单支持恢复默认歌词，清除手动选择并重新获取
+- 歌词解析器支持 `coverLyricSource` 设置：根据「在线匹配封面歌词」开关决定内嵌/酷狗优先级
+- 优化歌词候选排序：官方推荐优先、按 score 降序，与主应用一致
+- 优化歌词候选去重和数量限制（最多 20 个）
+- 代码优化：提取 `searchKugouLyricByKeyword` 辅助函数消除重复代码
+
 ### v1.3.2
 
 - 使用主应用 `Tabs/TabsList/TabsTrigger` 替换自定义库标签栏
