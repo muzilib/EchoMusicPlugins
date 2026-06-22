@@ -52,6 +52,55 @@ const _pendingEnrichment = new Map();
 /** 模块级库配置缓存：songId → library，供封面获取使用 */
 const _songLibraryCache = new Map();
 
+let _ctx = null;
+
+const saveManualLyric = async (hash, lyricText) => {
+  if (!_ctx) return;
+  await _ctx.storage.set(`lyric:${hash}`, lyricText);
+  _enrichedLyrics.set(hash, lyricText);
+  const trackId = _ctx.stores.player.currentTrackId;
+  if (trackId && String(trackId) === String(hash)) {
+    _ctx.stores.lyric.setLyric(lyricText, String(hash));
+  }
+};
+
+const clearManualLyric = async (hash) => {
+  if (!_ctx) return;
+  await _ctx.storage.remove(`lyric:${hash}`);
+};
+
+const searchKugouLyrics = async (keyword) => {
+  if (!_ctx || !_ctx.kugou) return [];
+  const searchResult = await _ctx.kugou.search.search(keyword, "song", 1, 5);
+  const lists = searchResult?.data?.lists || searchResult?.data?.list || [];
+  const results = [];
+  for (const match of lists) {
+    const fileHash = match.FileHash;
+    if (!fileHash) continue;
+    try {
+      const lyricResult = await _ctx.kugou.music.searchLyric(fileHash);
+      const candidates = lyricResult?.candidates || lyricResult?.data?.candidates || [];
+      for (const cand of candidates) {
+        if (!cand?.id || !cand?.accesskey) continue;
+        try {
+          const detail = await _ctx.kugou.music.getLyric(String(cand.id), String(cand.accesskey));
+          const lyricText = detail?.decodeContent || detail?.content || detail?.data?.content;
+          if (lyricText) {
+            results.push({
+              songName: match.SongName || match.FileName || "",
+              singer: match.SingerName || "",
+              album: match.AlbumName || "",
+              lyric: lyricText,
+              source: "酷狗",
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+  return results;
+};
+
 
 /* ===================================================================
  * Cover Fallback — 跟随主应用兜底封面机制
@@ -1411,6 +1460,89 @@ const createBrowserPage = (ctx, state) => {
         }
       };
 
+      const showLyricSearchDrawer = ref(false);
+      const lyricSearchEntry = ref(null);
+      const lyricSearchQuery = ref("");
+      const lyricSearchResults = ref([]);
+      const lyricSearchLoading = ref(false);
+      const lyricSearchError = ref("");
+      const lyricSelecting = ref(null);
+
+      const openLyricSearchDrawer = (entry) => {
+        const { artist, title } = parseTitleArtist(entry.name);
+        lyricSearchEntry.value = entry;
+        lyricSearchQuery.value = artist && artist !== "未知歌手" ? `${artist} ${title}` : title;
+        lyricSearchResults.value = [];
+        lyricSearchError.value = "";
+        lyricSearchLoading.value = false;
+        lyricSelecting.value = null;
+        showLyricSearchDrawer.value = true;
+      };
+
+      const closeLyricSearchDrawer = () => {
+        showLyricSearchDrawer.value = false;
+        lyricSearchEntry.value = null;
+        lyricSearchResults.value = [];
+      };
+
+      const doLyricSearch = async () => {
+        const q = lyricSearchQuery.value.trim();
+        if (!q) { lyricSearchError.value = "请输入搜索关键词"; return; }
+        lyricSearchLoading.value = true;
+        lyricSearchError.value = "";
+        lyricSearchResults.value = [];
+        try {
+          const results = await searchKugouLyrics(q);
+          if (results.length === 0) {
+            lyricSearchError.value = "未找到歌词";
+          } else {
+            lyricSearchResults.value = results;
+          }
+        } catch (err) {
+          lyricSearchError.value = "搜索失败：" + (err.message || "未知错误");
+        } finally {
+          lyricSearchLoading.value = false;
+        }
+      };
+
+      const selectLyric = async (result) => {
+        const entry = lyricSearchEntry.value;
+        if (!entry) return;
+        const song = createSong(entry, currentPath.value);
+        if (!song) return;
+        lyricSelecting.value = result.lyric;
+        try {
+          await saveManualLyric(String(song.id), result.lyric);
+          ctx.toast.success("歌词已更新");
+          closeLyricSearchDrawer();
+        } catch (err) {
+          ctx.toast.danger("保存失败");
+        } finally {
+          lyricSelecting.value = null;
+        }
+      };
+
+      const clearLyricSelection = async () => {
+        const entry = lyricSearchEntry.value;
+        if (!entry) return;
+        const song = createSong(entry, currentPath.value);
+        if (!song) return;
+        try {
+          await clearManualLyric(String(song.id));
+          ctx.toast.success("已恢复自动歌词");
+          closeLyricSearchDrawer();
+        } catch (err) {
+          ctx.toast.danger("操作失败");
+        }
+      };
+
+      const handleCtxSearchLyric = () => {
+        const ctxMenu = contextMenu.value;
+        if (!ctxMenu || ctxMenu.isDir) return;
+        contextMenu.value = null;
+        openLyricSearchDrawer(ctxMenu.entry);
+      };
+
       const breadcrumbs = computed(() => {
         if (!currentLibrary.value) return [];
         const rootPath = normalizeDir(currentLibrary.value.rootPath || "/");
@@ -1835,6 +1967,9 @@ const createBrowserPage = (ctx, state) => {
               h("div", { ref: contextMenuRef, class: "webdav-context-menu", style: { left: contextMenuPosition.value.x + "px", top: contextMenuPosition.value.y + "px" } }, [
                 h("div", { class: "webdav-context-item", onClick: handleCtxPlayNow }, "立即播放"),
                 h("div", { class: "webdav-context-item", onClick: handleCtxPlayNext }, "下一首播放"),
+                contextMenu.value && !contextMenu.value.isDir
+                  ? h("div", { class: "webdav-context-item", onClick: handleCtxSearchLyric }, "搜索歌词")
+                  : null,
               ]),
             ]),
           ] : null,
@@ -1903,7 +2038,70 @@ const createBrowserPage = (ctx, state) => {
                 }),
               ]),
             ]),
-          ]) : null,
+          }),
+          // 歌词搜索抽屉
+          h(Drawer, {
+            open: showLyricSearchDrawer.value,
+            "onUpdate:open": (v) => { if (!v) closeLyricSearchDrawer(); },
+            side: "right",
+            overlayStyle: { background: "var(--surface-scrim-bg)" },
+            panelStyle: {
+              padding: "0",
+              boxShadow: "none",
+              width: "min(500px, 96vw)",
+              top: "0",
+              bottom: "0",
+              left: "auto",
+              right: "0",
+              borderRadius: "10px 0 0 10px",
+              border: "none",
+              background: "var(--color-bg-main)",
+            },
+          }, {
+            default: () => h("div", { style: "display: flex; flex-direction: column; height: 100%; padding: 16px;" }, [
+              h("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;" }, [
+                h("span", { style: "font-size: 14px; font-weight: 600; color: var(--color-text-main);" }, `搜索歌词 - ${lyricSearchEntry.value ? parseTitleArtist(lyricSearchEntry.value.name).title || lyricSearchEntry.value.name : ""}`),
+                h(Button, { variant: "ghost", size: "xs", onClick: closeLyricSearchDrawer, "aria-label": "关闭" }, [
+                  h(Icon, { icon: "tabler:x", width: 14, height: 14 }),
+                ]),
+              ]),
+              h("div", { style: "display: flex; gap: 8px; margin-bottom: 12px;" }, [
+                h("input", {
+                  type: "text",
+                  value: lyricSearchQuery.value,
+                  onInput: (e) => { lyricSearchQuery.value = e.target.value; },
+                  onKeydown: (e) => { if (e.key === "Enter") doLyricSearch(); },
+                  placeholder: "输入歌手和歌曲名",
+                  style: "flex: 1; padding: 6px 10px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--color-bg-main); color: var(--color-text-main); font-size: 13px; outline: none;",
+                }),
+                h(Button, { size: "xs", onClick: doLyricSearch, disabled: lyricSearchLoading.value }, { default: () => lyricSearchLoading.value ? "搜索中..." : "搜索" }),
+              ]),
+              h("div", { style: "display: flex; justify-content: flex-end; margin-bottom: 8px;" }, [
+                h(Button, { size: "xs", variant: "outline", onClick: clearLyricSelection }, { default: () => "恢复自动歌词" }),
+              ]),
+              lyricSearchError.value
+                ? h("div", { style: "text-align: center; padding: 24px; color: var(--color-text-secondary); font-size: 13px;" }, lyricSearchError.value)
+                : lyricSearchLoading.value
+                  ? h("div", { style: "text-align: center; padding: 24px; color: var(--color-text-secondary); font-size: 13px;" }, "搜索中...")
+                  : h("div", { style: "flex: 1; overflow-y: auto; display: grid; gap: 4px;" }, [
+                      lyricSearchResults.value.map((result, idx) =>
+                        h("div", {
+                          key: idx,
+                          style: `padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; transition: background 0.15s;${lyricSelecting.value === result.lyric ? " opacity: 0.6;" : ""}`,
+                          onMouseenter: (e) => { e.currentTarget.style.background = "var(--row-hover-bg)"; },
+                          onMouseleave: (e) => { e.currentTarget.style.background = ""; },
+                          onClick: () => selectLyric(result),
+                        }, [
+                          h("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;" }, [
+                            h("span", { style: "font-size: 13px; font-weight: 500; color: var(--color-text-main);" }, `${result.singer || "未知"} - ${result.songName || "未知"}`),
+                            h("span", { style: "font-size: 11px; color: var(--color-text-secondary); background: var(--surface-sunken-bg, rgba(128,128,128,0.1)); padding: 2px 6px; border-radius: 4px;" }, result.source),
+                          ]),
+                          h("div", { style: "font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 36px; line-height: 18px;" }, result.lyric.slice(0, 120).replace(/\n/g, " ")),
+                        ])
+                      ),
+                    ]),
+            ]),
+          }),
         ]);
       };
     },
@@ -1923,6 +2121,7 @@ export async function activate(ctx) {
   ctx.dispose(() => window.removeEventListener("unhandledrejection", _unhandledHandler));
   const saved = await ctx.storage.get(STORAGE_KEY);
   state = ctx.vue.reactive({ settings: normalizeSettings(saved) });
+  _ctx = ctx;
 
   ctx.player.audioSource.register({
     id: "webdav",
@@ -1966,12 +2165,17 @@ export async function activate(ctx) {
 
   ctx.lyrics.registerResolver({
     id: "webdav-embedded",
+    order: 100,
     match: (context) => {
       const track = context.track;
       return track?.source === "webdav" && !!track?._filePath;
     },
     resolve: async (context) => {
       const hash = context.hash;
+      if (_ctx) {
+        const manualLyric = await _ctx.storage.get(`lyric:${hash}`);
+        if (manualLyric) return { decodeContent: manualLyric, source: "手动选择" };
+      }
       const cached = _enrichedLyrics.get(hash);
       if (cached) return { decodeContent: cached };
       const pending = _pendingEnrichment.get(hash);
@@ -1979,6 +2183,29 @@ export async function activate(ctx) {
         await Promise.race([pending, new Promise((r) => setTimeout(r, 3000))]);
         const result = _enrichedLyrics.get(hash);
         if (result) return { decodeContent: result };
+      }
+      const track = context.track;
+      if (track && track.title && _ctx && _ctx.kugou) {
+        try {
+          const keyword = track.artist && track.artist !== "未知歌手"
+            ? `${track.artist} ${track.title}`
+            : track.title;
+          const searchResult = await _ctx.kugou.search.search(keyword, "song", 1, 5);
+          const lists = searchResult?.data?.lists || searchResult?.data?.list || [];
+          if (lists.length > 0) {
+            const fileHash = lists[0].FileHash;
+            if (fileHash) {
+              const lyricResult = await _ctx.kugou.music.searchLyric(fileHash);
+              const candidates = lyricResult?.candidates || lyricResult?.data?.candidates || [];
+              const first = candidates[0];
+              if (first?.id && first?.accesskey) {
+                const detail = await _ctx.kugou.music.getLyric(String(first.id), String(first.accesskey));
+                const lyricText = detail?.decodeContent || detail?.content || detail?.data?.content;
+                if (lyricText) return { decodeContent: lyricText, source: "酷狗" };
+              }
+            }
+          }
+        } catch {}
       }
       return null;
     },
@@ -2012,10 +2239,20 @@ export async function activate(ctx) {
     sidebar: true,
   });
 
+  ctx.commands.register("webdav-music:searchLyric", async () => {
+    const track = ctx.stores.player.currentTrackSnapshot;
+    if (!track || track.source !== "webdav") {
+      ctx.toast.info("当前播放的不是 WebDAV 歌曲");
+      return;
+    }
+    ctx.toast.info("请在 WebDAV 浏览页右键歌曲使用搜索歌词功能");
+  });
+
   ctx.dispose(() => { state = null; });
   ctx.toast.success(`${ctx.manifest.name} 已启用`);
 }
 
 export function deactivate(_ctx) {
   state = null;
+  _ctx = null;
 }
