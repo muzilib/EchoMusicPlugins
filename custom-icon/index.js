@@ -88,6 +88,7 @@ let settingsStyleDispose = null;
 let pmState = null;
 let pmCssDispose = null;
 let pmObserverDispose = null;
+let pmWatchDispose = null;
 let originalPics = new Map();
 let pmCtx = null;
 
@@ -491,6 +492,7 @@ const cleanup = () => {
   splashObserverDispose?.(); splashObserverDispose = null;
   removeHiddenPlaylists();
   removeCustomCovers();
+  pmWatchDispose?.(); pmWatchDispose = null;
   pmCtx = null;
   state = null;
   pmState = null;
@@ -1165,6 +1167,20 @@ export async function activate(ctx) {
     try {
       applyHiddenPlaylists(ctx, pmNormalized);
       await applyCustomCovers(ctx, pmNormalized);
+      const playlistStore = ctx.stores.playlist;
+      if (playlistStore) {
+        pmWatchDispose = ctx.vue.watch(
+          () => playlistStore.userPlaylists,
+          () => {
+            const ps = pmState?.settings;
+            if (ps?.enabled) {
+              applyCustomCovers(ctx, ps);
+              if (ps.hiddenPlaylistIds.length > 0) applyHiddenPlaylists(ctx, ps);
+            }
+          },
+          { deep: false }
+        );
+      }
     } catch (e) { console.log("[custom-icon] playlist manager setup error:", e); }
   }
 
