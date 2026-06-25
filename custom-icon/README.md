@@ -71,6 +71,13 @@
 
 ## 更新日志
 
+### 1.8.3
+
+- 优化代码结构，格式化 CSS 以提升可读性
+- 提取重复的渲染模式为辅助函数（renderSwitchRow、renderTextInput、renderNumberInput、renderRangeInput、renderColorPicker）
+- 简化 normalizeSettings 函数，使用辅助函数减少重复代码
+- 将内联样式提取为 CSS 类（custom-icon-inline-input、custom-icon-inline-number、custom-icon-hint 等）
+
 ### 1.8.2
 
 - 修复歌单自定义封面重启后恢复默认的问题（兼容 Electron 42.5.0+）

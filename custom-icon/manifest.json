@@ -1,7 +1,7 @@
 {
   "id": "custom-icon",
   "name": "自定义图标和封面",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "自定义托盘图标、任务栏图标、桌面快捷方式图标、启动画面、启动音效以及管理歌单封面。",
   "author": "Oneday5799",
   "icon": "icon.svg",
