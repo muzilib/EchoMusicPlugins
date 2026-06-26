@@ -68,3 +68,24 @@
 - 启动音效播放时长请根据实际音效长度设置，避免播放不完整
 - 启动画面中的部分功能来自群友@小栀（rinnki）
 - 歌单管理功能仅在插件启用时生效，停用后所有歌单恢复显示和原始封面
+
+## 更新日志
+
+### 1.8.3
+
+- 优化代码结构，格式化 CSS 以提升可读性
+- 提取重复的渲染模式为辅助函数（renderSwitchRow、renderTextInput、renderNumberInput、renderRangeInput、renderColorPicker）
+- 简化 normalizeSettings 函数，使用辅助函数减少重复代码
+- 将内联样式提取为 CSS 类（custom-icon-inline-input、custom-icon-inline-number、custom-icon-hint 等）
+
+### 1.8.2
+
+- 修复歌单自定义封面重启后恢复默认的问题（兼容 Electron 42.5.0+）
+
+### 1.8.1
+
+- 去除歌单管理页两种歌单外层的包裹边框
+
+### 1.8.0
+
+- 新增歌单管理功能：控制歌单显示/隐藏、自定义歌单封面
