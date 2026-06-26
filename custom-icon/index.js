@@ -443,6 +443,13 @@ let pmObserverDispose = null;
 let pmWatchDispose = null;
 let originalPics = new Map();
 let pmCtx = null;
+let detailCoverInterval = null;
+let routeWatchDispose = null;
+
+const removeDetailCoverObserver = () => {
+  if (detailCoverInterval) { clearInterval(detailCoverInterval); detailCoverInterval = null; }
+  if (routeWatchDispose) { routeWatchDispose(); routeWatchDispose = null; }
+};
 
 const normalizePmSettings = (stored) => {
   const src = (stored && typeof stored === "object") || Array.isArray(stored) ? stored : {};
@@ -455,6 +462,63 @@ const normalizePmSettings = (stored) => {
       ? Object.fromEntries(Object.entries(src.customCovers).filter(([, v]) => v && typeof v === "object"))
       : {},
   };
+};
+
+const getCurrentPlaylistIdFromUrl = () => {
+  const hash = window.location.hash || "";
+  const match = hash.match(/playlist\/([^/?]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+};
+
+const findPlaylistIdByUrl = (urlId) => {
+  if (!urlId || !pmCtx) return "";
+  const store = pmCtx.stores.playlist;
+  const playlists = store?.userPlaylists || [];
+  for (const p of playlists) {
+    const ids = [p.id, p.listid, p.listCreateGid, p.globalCollectionId, p.listCreateListid]
+      .filter((v) => v !== undefined && v !== null && String(v) !== "")
+      .map(String);
+    if (ids.includes(urlId)) {
+      return String(p.listid || p.id || "");
+    }
+  }
+  return "";
+};
+
+const applyCoverToContainer = (container, covers) => {
+  const urlId = getCurrentPlaylistIdFromUrl();
+  if (!urlId) return;
+  const playlistId = findPlaylistIdByUrl(urlId);
+  if (!playlistId) return;
+  const cover = covers[playlistId];
+  if (!cover?.previewUrl) return;
+  const url = cover.previewUrl;
+  container.style.setProperty("background-image", `url("${url}")`, "important");
+  container.style.setProperty("background-size", "cover", "important");
+  container.style.setProperty("background-position", "center", "important");
+  container.style.setProperty("background-repeat", "no-repeat", "important");
+  const img = container.querySelector("img.cover-img");
+  if (img && img.getAttribute("src") !== url) {
+    img.setAttribute("src", url);
+  }
+};
+
+const patchDetailCoverDom = (covers) => {
+  const detailPage = pmCtx?.dom?.query(".playlist-detail-page");
+  if (!detailPage) return;
+  const firstContainer = detailPage.querySelector(".cover-container");
+  if (firstContainer) applyCoverToContainer(firstContainer, covers);
+};
+
+const setupDetailCoverObserver = (ctx, pmSettings) => {
+  removeDetailCoverObserver();
+  if (!pmSettings.enabled) return;
+  const covers = pmSettings.customCovers || {};
+  patchDetailCoverDom(covers);
+  detailCoverInterval = setInterval(() => { patchDetailCoverDom(covers); }, 200);
+  routeWatchDispose = ctx.router.afterEach(() => {
+    setTimeout(() => { patchDetailCoverDom(covers); }, 300);
+  });
 };
 
 const getPlaylistId = (playlist) => String(playlist.listid || playlist.id || "");
@@ -475,7 +539,7 @@ const applyHiddenPlaylists = (ctx, pmSettings) => {
     const hiddenSet = new Set(pmSettings.hiddenPlaylistIds);
     const pinnedIds = playlists.filter((p) => isPlaylistDefault(p) || isPlaylistLiked(p, likedId)).map(getPlaylistId);
     const allPinnedHidden = pinnedIds.length > 0 && pinnedIds.every((id) => hiddenSet.has(id));
-    document.querySelectorAll(".sidebar-library-item, .sidebar-rail-cover-btn").forEach((el) => {
+    (pmCtx?.dom?.queryAll(".sidebar-library-item, .sidebar-rail-cover-btn") || []).forEach((el) => {
       const span = el.querySelector("span");
       const name = span ? span.textContent.trim() : "";
       const matched = playlists.find((p) => hiddenSet.has(getPlaylistId(p)) && name === (p.name || ""));
@@ -484,7 +548,7 @@ const applyHiddenPlaylists = (ctx, pmSettings) => {
         el.setAttribute("data-playlist-id", getPlaylistId(matched));
       }
     });
-    document.querySelectorAll(".sidebar-playlist-divider").forEach((el) => {
+    (pmCtx?.dom?.queryAll(".sidebar-playlist-divider") || []).forEach((el) => {
       if (allPinnedHidden) {
         el.setAttribute("data-echo-hidden-divider", "true");
       } else {
@@ -502,11 +566,11 @@ const applyHiddenPlaylists = (ctx, pmSettings) => {
 const removeHiddenPlaylists = () => {
   if (pmCssDispose) { pmCssDispose(); pmCssDispose = null; }
   if (pmObserverDispose) { pmObserverDispose(); pmObserverDispose = null; }
-  document.querySelectorAll('[data-echo-hidden-playlist="true"]').forEach((el) => {
+  (pmCtx?.dom?.queryAll('[data-echo-hidden-playlist="true"]') || []).forEach((el) => {
     el.removeAttribute("data-echo-hidden-playlist");
     el.removeAttribute("data-playlist-id");
   });
-  document.querySelectorAll('[data-echo-hidden-divider="true"]').forEach((el) => {
+  (pmCtx?.dom?.queryAll('[data-echo-hidden-divider="true"]') || []).forEach((el) => {
     el.removeAttribute("data-echo-hidden-divider");
   });
 };
@@ -526,6 +590,7 @@ const removeCustomCovers = () => {
 
 const applyCustomCovers = async (ctx, pmSettings) => {
   removeCustomCovers();
+  removeDetailCoverObserver();
   if (!pmSettings.enabled) return;
   const store = ctx.stores.playlist;
   const playlists = store?.userPlaylists || [];
@@ -538,6 +603,7 @@ const applyCustomCovers = async (ctx, pmSettings) => {
       playlist.pic = cover.previewUrl;
     }
   }
+  setupDetailCoverObserver(ctx, pmSettings);
 };
 
 const buildSettingsFromDraft = (draft, overrides = {}) => ({
@@ -659,7 +725,7 @@ const stopSplashAudio = () => {
   }
 };
 
-const getLoadingView = () => document.querySelector(".loading-view");
+const getLoadingView = () => (pmCtx?.dom?.query(".loading-view") || document.querySelector(".loading-view"));
 
 const playSplashAudio = async (ctx, settings) => {
   stopSplashAudio();
@@ -870,6 +936,7 @@ const cleanup = () => {
   splashObserverDispose?.(); splashObserverDispose = null;
   removeHiddenPlaylists();
   removeCustomCovers();
+  removeDetailCoverObserver();
   pmWatchDispose?.(); pmWatchDispose = null;
   pmCtx = null;
   state = null;
@@ -1634,8 +1701,4 @@ export async function activate(ctx) {
   try { await ctx.appIcons.refresh(); } catch {}
 
   ctx.dispose(cleanup);
-}
-
-export function deactivate() {
-  cleanup();
 }

@@ -71,6 +71,14 @@
 
 ## 更新日志
 
+### 1.8.4
+
+- 新增歌单详情页封面同步：进入歌单详情页时自动替换顶部封面为自定义封面
+- 优化 DOM 查询方式：使用插件 API（`ctx.dom.query`/`ctx.dom.queryAll`）替代原生 `document.querySelector`
+- 移除冗余的 `deactivate` 导出，统一由 `ctx.dispose` 管理清理逻辑
+- 提取 `applyCoverToContainer` 辅助函数，封装歌单详情页封面应用逻辑
+- 歌单详情页封面同步支持路由切换时自动刷新
+
 ### 1.8.3
 
 - 优化代码结构，格式化 CSS 以提升可读性
