@@ -23,4 +23,4 @@
 
 在线安装：在 EchoMusic 的“插件管理”中添加本仓库插件源，然后安装“灵动岛歌词”。
 
-手动安装：将 `dynamic-island-lyric` 整个文件夹复制到 EchoMusic 插件目录，刷新并启用插件。
+手动安装：将 `example-plugin` 整个文件夹复制到 EchoMusic 插件目录，刷新并启用插件。

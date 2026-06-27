@@ -81,7 +81,7 @@ export function deactivate(ctx) {
 
 ## 窗口入口
 
-窗口脚本可以导出 `activateWindow(ctx)`、`activate(ctx)` 或默认函数。入口上下文独立于主插件上下文，只提供窗口渲染所需的 Vue、容器、私有存储、CSS 注入、Now Playing、音频频谱、受控文件、本地进程和当前窗口控制 API。
+窗口脚本可以导出 `activateWindow(ctx)`、`activate(ctx)` 或默认函数。入口上下文独立于主插件上下文，只提供窗口渲染所需的 Vue、容器、私有存储、CSS 注入、Now Playing、字体、音频频谱、受控文件、本地进程和当前窗口控制 API。
 
 ```js
 export function activateWindow(ctx) {
@@ -130,7 +130,7 @@ export function activateWindow(ctx) {
 
 快照包含：
 
-- `playback`：当前歌曲、封面、时长、进度、播放状态、倍速和快照更新时间。
+- `playback`：当前歌曲、封面、时长、进度、播放状态、我喜欢状态、私人 FM 状态（`isPersonalFM`，当前曲目是否来自私人 FM）、倍速和快照更新时间。
 - `lyric`：歌词行、当前行索引、翻译/音译开关、歌词偏移、加载状态。
 - `appearance`：深浅色、主题色、全局字体。
 
@@ -186,6 +186,16 @@ ctx.nowPlaying.command("lyricOffsetReset");
 - `close()`
 - `setIgnoreMouseEvents(ignore)`
 - `setAlwaysOnTop(alwaysOnTop)`
+- `showOnTop(options?)`
+
+`showOnTop()` 会把当前窗口抬到最前一次，但**不改变置顶状态**（不会变成 `alwaysOnTop`）：窗口隐藏时先显示，最小化时先还原，然后抬升层级。它适合“呼出/聚焦”这类一次性动作，而不是常驻置顶。
+
+`options.focus` 默认 `true`：抢占焦点并激活窗口，能真正浮到其他应用窗口之上；设为 `false` 时退化为不抢焦点的轻抬（`showInactive` + 抬层），不打断当前输入，但在部分平台不保证压过其他应用的前台窗口。
+
+```js
+await ctx.window.showOnTop(); // 抢焦点，浮到最前
+await ctx.window.showOnTop({ focus: false }); // 不打断输入，仅抬层
+```
 
 拖拽和锁定穿透应由插件窗口 UI 自己决定，但最终移动与穿透仍通过宿主 IPC 执行。
 
@@ -209,11 +219,30 @@ async function togglePin(ctx, settings) {
 - `move(windowId, bounds)`
 - `getBounds(windowId)`
 - `setIgnoreMouseEvents(windowId, ignore)`
+- `showOnTop(windowId, options?)`
+
+`ctx.windows.showOnTop(windowId, options?)` 与窗口入口的 `ctx.window.showOnTop()` 行为一致，只是按 windowId 指定目标插件窗口；`options.focus` 默认 `true`。
 
 主入口也可以通过 `ctx.windows.show(windowId, { alwaysOnTop })` 临时切换置顶状态；窗口入口内更推荐使用 `ctx.window.setAlwaysOnTop()`。
+
+## 宿主窗口（主窗口 / mini 播放器）
+
+主插件入口和窗口入口都提供 `ctx.host`，用于把**宿主窗口**抬到最前（同样不改变置顶状态）：
+
+- `showOnTop(target?, options?)`，`target` 为 `'main' | 'mini-player'`，默认 `'main'`；`options.focus` 默认 `true`。
+
+```js
+await ctx.host.showOnTop(); // 等价于 'main'，呼出主窗口
+await ctx.host.showOnTop('mini-player'); // 呼出 mini 播放器窗口
+await ctx.host.showOnTop('main', { focus: false }); // 仅抬层，不抢焦点
+```
+
+`'mini-player'` 仅在 mini 播放器已开启时生效；未开启时返回 `{ ok: false, error: 'mini 播放器未开启' }`，不会自动切换到 mini 模式。桌面歌词有独立的置顶开关，不在 `ctx.host` 覆盖范围内。
 
 窗口入口中的 `ctx.process` 与主插件入口一致，也只会绑定当前插件 id。使用前仍需在 manifest 中声明 `capabilities.process: true`，详见主 README 的“本地辅助进程”章节。
 
 窗口入口中的 `ctx.audio.spectrum` 与主插件入口一致，用于读取或订阅音频频谱。使用前仍需在 manifest 中声明 `capabilities.audioSpectrum: true`。
 
 窗口入口中的 `ctx.fs` 与主插件入口一致，用于将本地文件转换为可渲染 URL，或在声明 `capabilities.localFiles: true` 后扫描、读取本地媒体文件，以及写入当前插件目录内的缓存、图片或导出文件。
+
+窗口入口中的 `ctx.fonts` 与主插件入口一致，可通过 `getAll()` 获取系统字体列表，通过 `getOptions({ includeFollow: true })` 获取适合设置面板的字体选项，通过 `buildFamily(fontName)` 构建可直接用于 inline style 的 CSS `font-family`。

@@ -1,7 +1,7 @@
 {
   "id": "webdav-music",
   "name": "WebDAV 音乐",
-  "version": "1.2.1",
+  "version": "1.3.6",
   "description": "连接 WebDAV 服务器，浏览和播放云端音乐文件。",
   "author": "Oneday5799",
   "icon": "icon.svg",
@@ -12,7 +12,7 @@
     "desktopLyric": false
   },
   "requires": {
-    "echoMusicVersion": ">=2.2.6-beta.11"
+    "echoMusicVersion": ">=2.2.7-beta.13"
   },
   "capabilities": {
     "audioSource": true,

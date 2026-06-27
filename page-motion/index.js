@@ -1,18 +1,20 @@
 const STORAGE_KEY = "page-motion-settings";
 const CUSTOM_CSS_PRESET = "customCss";
 const CUSTOM_TRANSITION_NAME = "page-motion-custom";
-const DEFAULT_CUSTOM_CSS = `.page-motion-custom-enter-active,
+const DEFAULT_CUSTOM_CSS = `/*
+ * 默认模板仅做透明度淡入淡出，刻意不使用 transform / filter。
+ * 注意：含吸顶头(position: sticky)或虚拟列表的页面，若在页面根上使用 transform/filter，
+ * 会改变 sticky 包含块并在高 DPI(2K 缩放)下导致整页发虚、动画结束回弹，风险自负。
+ */
+.page-motion-custom-enter-active,
 .page-motion-custom-leave-active,
 .page-motion-custom-appear-active {
-  transition:
-    opacity var(--page-transition-duration) ease-out,
-    transform var(--page-transition-duration) ease-out;
+  transition: opacity var(--page-transition-duration) ease-out;
 }
 
 .page-motion-custom-enter-from,
 .page-motion-custom-appear-from {
   opacity: 0;
-  transform: translateY(6px);
 }
 
 .page-motion-custom-leave-to {
@@ -23,7 +25,6 @@ const DEFAULT_CUSTOM_CSS = `.page-motion-custom-enter-active,
 .page-motion-custom-leave-from,
 .page-motion-custom-appear-to {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .page-motion-custom-route-enter-active {
@@ -33,71 +34,37 @@ const DEFAULT_CUSTOM_CSS = `.page-motion-custom-enter-active,
 @keyframes page-motion-custom-route-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }`;
 
 const TRANSITION_PRESETS = {
   slideFade: {
-    label: "上滑淡入",
-    description: "沿用主页面原本的上滑淡入手感。",
+    label: "标准淡入",
+    description: "平滑的淡入淡出，安全稳定。",
     durationMs: 450,
     easing: "ease-out",
-    enterTranslateX: 0,
-    enterTranslateY: 6,
-    leaveTranslateX: 0,
-    leaveTranslateY: 0,
-    enterScale: 1,
-    leaveScale: 1,
-    enterFilter: "none",
-    leaveFilter: "none",
   },
   calm: {
-    label: "柔和浮入",
-    description: "轻微上浮，适合日常使用。",
+    label: "柔和淡入",
+    description: "更慢更柔的淡入，适合日常使用。",
     durationMs: 300,
     easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-    enterTranslateX: 0,
-    enterTranslateY: 10,
-    leaveTranslateX: 0,
-    leaveTranslateY: -6,
-    enterScale: 0.99,
-    leaveScale: 0.995,
-    enterFilter: "none",
-    leaveFilter: "none",
   },
   crisp: {
-    label: "轻快侧滑",
-    description: "横向切换更明显，速度更快。",
+    label: "轻快淡入",
+    description: "更快的淡入，干脆利落。",
     durationMs: 220,
     easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-    enterTranslateX: 12,
-    enterTranslateY: 0,
-    leaveTranslateX: -8,
-    leaveTranslateY: 0,
-    enterScale: 1,
-    leaveScale: 1,
-    enterFilter: "none",
-    leaveFilter: "none",
   },
   depth: {
-    label: "景深淡入",
-    description: "加入轻微缩放和模糊，层次感更强。",
+    label: "渐显淡入",
+    description: "稍长的淡入，过渡更从容。",
     durationMs: 360,
     easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    enterTranslateX: 0,
-    enterTranslateY: 14,
-    leaveTranslateX: 0,
-    leaveTranslateY: -8,
-    enterScale: 0.975,
-    leaveScale: 1.01,
-    enterFilter: "blur(2px)",
-    leaveFilter: "blur(1px)",
   },
   [CUSTOM_CSS_PRESET]: {
     label: "自定义 CSS",
@@ -228,8 +195,6 @@ const SETTINGS_CSS = `
   border-radius: 12px;
   background: var(--color-bg-card);
   box-shadow: var(--shadow-control);
-  transform: translate3d(0, 0, 0) scale(1);
-  will-change: opacity, transform, filter;
 }
 
 .echo-page-motion-preview-card.is-disabled {
@@ -332,19 +297,10 @@ const SETTINGS_CSS = `
 @keyframes echo-page-motion-preview-enter {
   from {
     opacity: var(--echo-page-motion-preview-enter-opacity);
-    transform: translate3d(
-        var(--echo-page-motion-preview-enter-x),
-        var(--echo-page-motion-preview-enter-y),
-        0
-      )
-      scale(var(--echo-page-motion-preview-enter-scale));
-    filter: var(--echo-page-motion-preview-enter-filter);
   }
 
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: none;
   }
 }
 
@@ -511,7 +467,6 @@ const applySettings = () => {
       easing: "ease-out",
       enterOpacity: 0,
       leaveOpacity: 0,
-      enterTranslateY: 6,
       css: String(state.settings.customCss || "").trim() || DEFAULT_CUSTOM_CSS,
     });
     return;
@@ -525,14 +480,6 @@ const applySettings = () => {
     easing: preset.easing,
     enterOpacity: 0,
     leaveOpacity: 0,
-    enterTranslateX: preset.enterTranslateX,
-    enterTranslateY: preset.enterTranslateY,
-    leaveTranslateX: preset.leaveTranslateX,
-    leaveTranslateY: preset.leaveTranslateY,
-    enterScale: preset.enterScale,
-    leaveScale: preset.leaveScale,
-    enterFilter: preset.enterFilter,
-    leaveFilter: preset.leaveFilter,
   });
 };
 
@@ -580,7 +527,6 @@ const createSettingsComponent = (ctx) => {
       const previewDuration = computed(() =>
         Math.max(80, Math.min(900, Number(state.settings.durationMs) || 450)),
       );
-      const toCssLength = (value) => (Number.isFinite(Number(value)) ? `${Number(value)}px` : "0px");
       const previewStyle = computed(() => {
         const preset = isCustomPreset.value ? TRANSITION_PRESETS.slideFade : selectedPreset.value;
         const duration = `${previewDuration.value}ms`;
@@ -590,18 +536,10 @@ const createSettingsComponent = (ctx) => {
           "--echo-page-motion-preview-duration": duration,
           "--echo-page-motion-preview-easing": easing,
           "--echo-page-motion-preview-enter-opacity": "0",
-          "--echo-page-motion-preview-enter-x": toCssLength(preset.enterTranslateX || 0),
-          "--echo-page-motion-preview-enter-y": toCssLength(preset.enterTranslateY || 0),
-          "--echo-page-motion-preview-enter-scale": String(preset.enterScale || 1),
-          "--echo-page-motion-preview-enter-filter": preset.enterFilter || "none",
           "--page-transition-duration": duration,
           "--page-transition-easing": easing,
           "--page-transition-enter-opacity": "0",
           "--page-transition-leave-opacity": "0",
-          "--page-transition-enter-x": toCssLength(preset.enterTranslateX || 0),
-          "--page-transition-enter-y": toCssLength(preset.enterTranslateY || 0),
-          "--page-transition-enter-scale": String(preset.enterScale || 1),
-          "--page-transition-enter-filter": preset.enterFilter || "none",
         };
       });
 

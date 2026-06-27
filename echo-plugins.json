@@ -3,14 +3,14 @@
   "homepage": "https://github.com/hoowhoami/EchoMusicPlugins",
   "plugins": [
     {
-      "id": "dynamic-island-lyric",
-      "path": "dynamic-island-lyric",
-      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/dynamic-island-lyric",
+      "id": "example-plugin",
+      "path": "example-plugin",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/example-plugin",
       "tags": [
+        "demo",
         "lyrics",
         "floating-window",
-        "now-playing",
-        "desktop"
+        "now-playing"
       ]
     },
     {
@@ -133,6 +133,113 @@
         "appearance",
         "liquidglass",
         "theme"
+      ]
+    },
+    {
+      "id": "taskbar-lyric",
+      "name": "任务栏歌词",
+      "description": "在任务栏上方显示当前歌词和专辑封面的透明浮窗,自动检测任务栏位置并贴靠",
+      "author": "yaoyaoprincess",
+      "path": "",
+      "repo": "https://github.com/yaoyaoprincess/taskbar-lyric",
+      "homepage": "https://github.com/yaoyaoprincess/taskbar-lyric",
+      "tags": [
+        "floating-window",
+        "lyrics",
+        "lyric-effects"
+      ]
+    },
+    {
+      "id": "plugin-panel",
+      "name": "插件面板",
+      "description": "在侧边栏添加插件面板快捷入口，一键跳转",
+      "author": "yaoyaoprincess",
+      "path": "",
+      "repo": "https://github.com/yaoyaoprincess/plugin-panel",
+      "homepage": "https://github.com/yaoyaoprincess/plugin-panel",
+      "tags": [
+        "plugin-panel"
+      ]
+    },
+    {
+      "id": "cover-color-lyric",
+      "name": "取色歌词",
+      "description": "桌面歌词颜色自动跟随歌曲封面主色调，算法与主程序 color.ts 完全一致；支持深浅色归一化、频谱律动、一键恢复默认设置",
+      "author": "小栀",
+      "path": "",
+      "repo": "https://github.com/rinnki-L/cover-color-lyric",
+      "homepage": "https://github.com/rinnki-L/cover-color-lyric",
+      "tags": [
+        "appearance",
+        "lyrics",
+        "lyric-effects",
+        "cover"
+      ]
+    },
+    {
+      "id": "custom-icon",
+      "name": "自定义图标",
+      "description": "允许用户自定义托盘图标、窗口标题栏图标、任务栏图标、桌面快捷方式图标以及启动画面。",
+      "author": "Oneday5799",
+      "path": "custom-icon",
+      "repo": "",
+      "homepage": "https://github.com/oneday5799/EchoMusicPlugins/tree/main/custom-icon",
+      "tags": [
+        "appearance",
+        "icons",
+        "splash-screen"
+      ]
+    },
+    {
+      "id": "echo_music-blue_archive-theme",
+      "name": "Venti1112的主题包",
+      "description": "本意是想做一个蔚蓝档案主题包，结果发现貌似挺大众化的，反正你自己调一下设置吧（",
+      "author": "venti1112",
+      "path": "",
+      "repo": "https://github.com/venti1112/echo_music-blue_archive-theme",
+      "homepage": "https://github.com/venti1112/echo_music-blue_archive-theme",
+      "tags": [
+        "theme",
+        "beautify"
+      ]
+    },
+    {
+      "id": "echo-local-simple",
+      "name": "简单本地音乐",
+      "description": "简单实现的本地音乐播放",
+      "author": "天影大侠",
+      "path": "",
+      "repo": "https://github.com/SkyShadowHero/echo-local-simple",
+      "homepage": "https://github.com/SkyShadowHero/echo-local-simple",
+      "tags": [
+        "local"
+      ]
+    },
+    {
+      "id": "Record-player",
+      "name": "唱片播放器",
+      "description": "仿酷狗唱片播放器",
+      "author": "xiaotian2333",
+      "path": "",
+      "repo": "https://github.com/xiaotian2333/EchoMusic-Record-player",
+      "homepage": "https://github.com/xiaotian2333/EchoMusic-Record-player",
+      "tags": [
+        "beautify"
+      ]
+    },
+    {
+      "id": "xiaotoolkit",
+      "name": "小功能",
+      "description": "热门排序 + 隐藏歌单 + 歌词隐藏控制栏 + 隐藏听歌识曲 + 顶部插件按钮 + 桌面特效",
+      "author": "张三",
+      "path": "xiaotoolkit",
+      "homepage": "https://github.com/hoowhoami/EchoMusicPlugins/tree/main/xiaotoolkit",
+      "tags": [
+        "toolkit",
+        "sort",
+        "appearance",
+        "lyrics",
+        "productivity"
       ]
     }
   ]
