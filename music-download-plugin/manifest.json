@@ -1,0 +1,38 @@
+{
+  "id": "music-download-plugin",
+  "name": "音乐下载插件",
+  "version": "1.1.0",
+  "description": "一键下载当前曲目的音频、歌词和封面，三者分开下载；提供独立下载弹窗、播放栏按钮注入和快捷键入口。",
+  "author": "Chenbing",
+  "icon": "icon.svg",
+  "main": "index.js",
+  "requires": {
+    "echoMusicVersion": ">=2.2.6"
+  },
+  "contributes": {
+    "windows": [
+      {
+        "id": "island",
+        "type": "floating",
+        "title": "下载窗口",
+        "main": "island.js",
+        "style": "island.css",
+        "defaultWidth": 260,
+        "defaultHeight": 48,
+        "minWidth": 180,
+        "minHeight": 40,
+        "maxWidth": 460,
+        "maxHeight": 172,
+        "position": "top-center",
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "movable": true,
+        "rememberBounds": true,
+        "allowOutsideWorkArea": true,
+        "acceptFirstMouse": true
+      }
+    ]
+  }
+}
