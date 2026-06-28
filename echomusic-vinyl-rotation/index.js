@@ -1,12 +1,151 @@
+const STORAGE_KEY = 'echomusic-vinyl-rotation-settings';
+const DEFAULT_SETTINGS = {
+  scale: 100,
+};
+
+const clamp = (value, min, max) =>
+  Math.max(min, Math.min(max, Number(value) || 0));
+
+const normalizeSettings = (value) => {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    ...DEFAULT_SETTINGS,
+    scale: clamp(source.scale ?? DEFAULT_SETTINGS.scale, 90, 150),
+  };
+};
+
 let disposeSnapshot = null;
 let observerRef = null;
 let disposeWatch = null;
+let disposeFullscreen = null;
 let isChangingTrack = false;
 let activeCtx = null;
 let lastIsPlaying = null;
 let lastPauseTime = 0;
 let vinylElementsReady = false;
 let cachedCoverContainer = null;
+let state = null;
+let settingsDispose = null;
+let settingsStyleDispose = null;
+let saveTimer = 0;
+
+const SETTINGS_CSS = `
+.echo-vinyl-settings {
+  display: grid;
+  gap: 14px;
+  color: var(--color-text-main);
+}
+
+.echo-vinyl-settings-row {
+  display: grid;
+  gap: 7px;
+}
+
+.echo-vinyl-settings-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.echo-vinyl-settings-title {
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.echo-vinyl-settings-hint {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.echo-vinyl-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+`;
+
+const scheduleSave = (ctx) => {
+  if (saveTimer) window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    saveTimer = 0;
+    if (!state) return;
+    void ctx.storage.set(STORAGE_KEY, normalizeSettings(state.settings));
+  }, 240);
+};
+
+const updateSettings = (ctx, patch) => {
+  if (!state) return;
+  state.settings = normalizeSettings({ ...state.settings, ...patch });
+  applySettings();
+  scheduleSave(ctx);
+};
+
+const isWindowFullscreen = () => {
+  if (document.fullscreenElement) return true;
+  try {
+    const ow = window.outerWidth;
+    const oh = window.outerHeight;
+    const sw = window.screen?.availWidth || window.screen?.width || 0;
+    const sh = window.screen?.availHeight || window.screen?.height || 0;
+    if (ow && oh && sw && sh && ow >= sw * 0.95 && oh >= sh * 0.95) return true;
+  } catch(e) {}
+  return false;
+};
+
+const applySettings = () => {
+  if (!state) return;
+  const scale = (isWindowFullscreen() ? 120 : state.settings.scale) / 100;
+
+  const group = document.querySelector('.echo-vinyl-group');
+  if (group) {
+    group.style.transform = `scale(${scale})`;
+  }
+};
+
+const createSettingsComponent = (ctx) =>
+  ctx.vue.defineComponent({
+    name: 'VinylRotationSettings',
+    setup() {
+      const { h, defineAsyncComponent } = ctx.vue;
+      const Slider = defineAsyncComponent(ctx.ui.components.Slider);
+      const Button = defineAsyncComponent(ctx.ui.components.Button);
+
+      const slider = (label, key, min, max, hint) =>
+        h('div', { class: 'echo-vinyl-settings-row' }, [
+          h('div', { class: 'echo-vinyl-settings-line' }, [
+            h('span', { class: 'echo-vinyl-settings-title' }, label),
+            h('span', { class: 'echo-vinyl-settings-hint' }, String(state.settings[key])),
+          ]),
+          h(Slider, {
+            modelValue: state.settings[key],
+            min,
+            max,
+            step: 1,
+            'onUpdate:modelValue': (value) =>
+              updateSettings(ctx, { [key]: Number(value) }),
+          }),
+          hint ? h('div', { class: 'echo-vinyl-settings-hint' }, hint) : null,
+        ]);
+
+      return () =>
+        h('div', { class: 'echo-vinyl-settings' }, [
+          slider('唱片缩放', 'scale', 90, 150, '调整黑胶唱片和封面的大小，基于中心缩放。'),
+          h('div', { class: 'echo-vinyl-settings-actions' }, [
+            h(
+              Button,
+              {
+                variant: 'outline',
+                size: 'xs',
+                onClick: () => updateSettings(ctx, DEFAULT_SETTINGS),
+              },
+              { default: () => '恢复默认' },
+            ),
+          ]),
+        ]);
+    },
+  });
 
 function injectVinylStyles() {
   const old = document.getElementById('echo-vinyl-global-style');
@@ -27,6 +166,8 @@ function injectVinylStyles() {
       box-shadow: none !important;
       border: none !important;
       outline: none !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
     }
 
     .lyric-page .cover-wrapper {
@@ -67,10 +208,24 @@ function injectVinylStyles() {
       overflow: visible !important;
     }
 
+    .lyric-page .lyric-page-content {
+      overflow: visible !important;
+    }
+
     .lyric-page .cover-container::before,
     .lyric-page .cover-container::after {
       content: none !important;
       display: none !important;
+    }
+
+    .echo-vinyl-group {
+      position: absolute !important;
+      width: 510px !important;
+      height: 510px !important;
+      top: 0 !important;
+      left: 0 !important;
+      transform-origin: 255px 255px !important;
+      pointer-events: none !important;
     }
 
     .echo-vinyl-cover-wrap {
@@ -84,6 +239,7 @@ function injectVinylStyles() {
       left: 193px !important;
       animation: echoVinylSpin 20s linear infinite;
       animation-play-state: paused !important;
+      transform-origin: center center !important;
     }
 
     .echo-vinyl-cover-wrap img {
@@ -113,6 +269,7 @@ function injectVinylStyles() {
       animation: echoVinylSpin 20s linear infinite;
       animation-play-state: paused !important;
       overflow: hidden !important;
+      transform-origin: center center !important;
     }
 
     .echo-vinyl-disc::before {
@@ -205,11 +362,11 @@ function setupVinylElements() {
 
   if (coverContainer === cachedCoverContainer && vinylElementsReady) return;
 
+  const hasGroup = coverContainer.querySelector('.echo-vinyl-group');
   const hasDisc = coverContainer.querySelector('.echo-vinyl-disc');
   const hasCoverWrap = coverContainer.querySelector('.echo-vinyl-cover-wrap');
-  const hasTonearm = coverContainer.querySelector('.echo-vinyl-tonearm');
 
-  if (!hasDisc || !hasCoverWrap || !hasTonearm) {
+  if (!hasGroup || !hasDisc || !hasCoverWrap) {
     vinylElementsReady = false;
   }
 
@@ -248,6 +405,7 @@ function setupVinylElements() {
       if (el.classList.contains('echo-vinyl-disc') || 
           el.classList.contains('echo-vinyl-cover-wrap') || 
           el.classList.contains('echo-vinyl-tonearm') ||
+          el.classList.contains('echo-vinyl-group') ||
           el.tagName === 'IMG') {
         return;
       }
@@ -257,18 +415,16 @@ function setupVinylElements() {
       }
     });
 
-    let coverWrap = coverContainer.querySelector('.echo-vinyl-cover-wrap');
+    let group = coverContainer.querySelector('.echo-vinyl-group');
+    if (!group) {
+      group = document.createElement('div');
+      group.className = 'echo-vinyl-group';
+    }
+
+    let coverWrap = group.querySelector('.echo-vinyl-cover-wrap');
     if (!coverWrap) {
       coverWrap = document.createElement('div');
       coverWrap.className = 'echo-vinyl-cover-wrap';
-      coverWrap.style.width = '225px';
-      coverWrap.style.height = '225px';
-      coverWrap.style.borderRadius = '50%';
-      coverWrap.style.overflow = 'hidden';
-      coverWrap.style.zIndex = '2';
-      coverWrap.style.position = 'absolute';
-      coverWrap.style.top = '143px';
-      coverWrap.style.left = '193px';
     }
 
     const imgs = coverContainer.querySelectorAll('img');
@@ -287,17 +443,15 @@ function setupVinylElements() {
       }
     });
 
-    if (!hasDisc) {
-      const disc = document.createElement('div');
+    let disc = group.querySelector('.echo-vinyl-disc');
+    if (!disc) {
+      disc = document.createElement('div');
       disc.className = 'echo-vinyl-disc';
-      coverContainer.appendChild(disc);
-    }
-    if (!coverContainer.contains(coverWrap)) {
-      coverContainer.appendChild(coverWrap);
     }
 
-    if (!hasTonearm) {
-      const tonearm = document.createElement('div');
+    let tonearm = group.querySelector('.echo-vinyl-tonearm');
+    if (!tonearm) {
+      tonearm = document.createElement('div');
       tonearm.className = 'echo-vinyl-tonearm';
       tonearm.setAttribute('data-v', '2');
       tonearm.innerHTML = `
@@ -321,8 +475,12 @@ function setupVinylElements() {
             </g>
           </g>
         </svg>`;
-      coverContainer.appendChild(tonearm);
     }
+
+    if (!group.contains(disc)) group.appendChild(disc);
+    if (!group.contains(coverWrap)) group.appendChild(coverWrap);
+    if (!group.contains(tonearm)) group.appendChild(tonearm);
+    if (!coverContainer.contains(group)) coverContainer.appendChild(group);
 
     vinylElementsReady = true;
     cachedCoverContainer = coverContainer;
@@ -346,18 +504,41 @@ function onTrackChange() {
   });
 }
 
-export function activate(ctx) {
+export async function activate(ctx) {
   if (disposeSnapshot) { try { disposeSnapshot(); } catch(e) {} disposeSnapshot = null; }
   if (observerRef) { observerRef.disconnect(); observerRef = null; }
   if (disposeWatch) { try { disposeWatch(); } catch(e) {} disposeWatch = null; }
+  if (settingsDispose) { try { settingsDispose(); } catch(e) {} settingsDispose = null; }
+  if (settingsStyleDispose) { try { settingsStyleDispose(); } catch(e) {} settingsStyleDispose = null; }
+  if (saveTimer) { window.clearTimeout(saveTimer); saveTimer = 0; }
   isChangingTrack = false;
   document.body.classList.remove('echo-vinyl-ready');
   activeCtx = ctx;
 
-  document.querySelectorAll('.echo-vinyl-disc, .echo-vinyl-cover-wrap, .echo-vinyl-tonearm').forEach(el => el.remove());
-  
+  document.querySelectorAll('.echo-vinyl-disc, .echo-vinyl-cover-wrap, .echo-vinyl-tonearm, .echo-vinyl-group').forEach(el => el.remove());
+
+  state = ctx.vue.reactive({
+    settings: normalizeSettings(await ctx.storage.get(STORAGE_KEY)),
+  });
+
   injectVinylStyles();
   setupVinylElements();
+  applySettings();
+
+  const onResize = () => applySettings();
+  document.addEventListener('fullscreenchange', onResize);
+  window.addEventListener('resize', onResize);
+  disposeFullscreen = () => {
+    document.removeEventListener('fullscreenchange', onResize);
+    window.removeEventListener('resize', onResize);
+  };
+
+  settingsStyleDispose = ctx.css.inject(SETTINGS_CSS, { id: 'echomusic-vinyl-rotation-settings' });
+  settingsDispose = ctx.ui.settings.define({
+    title: '黑胶唱片',
+    description: '调整黑胶唱片和封面的缩放比例，以及唱针高度。',
+    component: createSettingsComponent(ctx),
+  });
 
   if (ctx && ctx.player) {
     try {
@@ -444,6 +625,7 @@ export function activate(ctx) {
       vinylElementsReady = false;
       cachedCoverContainer = null;
       setupVinylElements();
+      applySettings();
     }
   });
   observerRef.observe(document.body, { childList: true, subtree: true });
@@ -457,11 +639,16 @@ export function deactivate(ctx) {
   }
   if (observerRef) observerRef.disconnect();
   if (disposeWatch) { try { disposeWatch(); } catch(e) {} disposeWatch = null; }
-  
+  if (disposeFullscreen) { disposeFullscreen(); disposeFullscreen = null; }
+  if (settingsDispose) { try { settingsDispose(); } catch(e) {} settingsDispose = null; }
+  if (settingsStyleDispose) { try { settingsStyleDispose(); } catch(e) {} settingsStyleDispose = null; }
+  if (saveTimer) { window.clearTimeout(saveTimer); saveTimer = 0; }
+  state = null;
+
   document.getElementById('echo-vinyl-global-style')?.remove();
   document.body.classList.remove('echo-vinyl-spinning');
   document.body.classList.remove('echo-vinyl-ready');
-  document.querySelectorAll('.echo-vinyl-disc, .echo-vinyl-cover-wrap, .echo-vinyl-tonearm').forEach(el => el.remove());
+  document.querySelectorAll('.echo-vinyl-disc, .echo-vinyl-cover-wrap, .echo-vinyl-tonearm, .echo-vinyl-group').forEach(el => el.remove());
   
   const c = document.querySelector('.lyric-page .cover-container');
   if (c) {
