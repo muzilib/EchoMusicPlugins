@@ -241,6 +241,18 @@
         "lyrics",
         "productivity"
       ]
+    },
+    {
+      "id": "channel-wander",
+      "name": "频道漫游",
+      "description": "频道漫游，无限发现音乐",
+      "author": "xiaotian2333",
+      "path": "",
+      "repo": "https://github.com/xiaotian2333/EchoMusic-channel-wander",
+      "homepage": "https://github.com/xiaotian2333/EchoMusic-channel-wander",
+      "tags": [
+        "wander"
+      ]
     }
   ]
 }
