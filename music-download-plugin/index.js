@@ -518,7 +518,7 @@ const makePlayerButton = (ctx) => {
         "button",
         {
             id: PLAYER_BTN_ID,
-            class: "echo-dl-btn echo-dl-btn--bar",
+            class: "echo-dl-btn echo-dl-btn--bar app-focus-ring-soft",
             type: "button",
             title: "下载音乐 (⌘/Ctrl + Shift + D)",
         },
@@ -578,7 +578,7 @@ const ensurePlayerButton = (ctx) => {
 
     if (mode === "bar") {
         const {container, sel} = point;
-        playerBtn.className = "echo-dl-btn echo-dl-btn--bar";
+        playerBtn.className = "echo-dl-btn echo-dl-btn--bar app-focus-ring-soft";
         if (playerBtn.parentElement !== container) {
             container.appendChild(playerBtn);
             console.log(TAG, "下载按钮已放入播放栏末尾", sel);
@@ -656,11 +656,14 @@ const SETTINGS_CSS = `
 .echo-dl-foot__hint{font-size:11px;color:var(--color-text-secondary,rgba(148,163,184,.85));min-width:0}
 
 /* ===== 播放栏 / 浮动按钮 ===== */
-#echo-dl-playerbar-btn.echo-dl-btn--bar{width:34px;height:34px;padding:0;border-radius:8px;background:transparent;border:0;color:inherit;cursor:pointer;display:grid;place-items:center;opacity:.72;transition:opacity .15s ease,background .15s ease}
-#echo-dl-playerbar-btn.echo-dl-btn--bar:hover{opacity:1;background:color-mix(in srgb,var(--color-text-main,#fff) 10%,transparent)}
+#echo-dl-playerbar-btn.echo-dl-btn--bar{width:34px;height:34px;padding:0;border:0;border-radius:8px;background:transparent;color:color-mix(in srgb,var(--color-text-main,#fff) 50%,transparent);cursor:pointer;display:grid;place-items:center;transition:all .15s ease}
+#echo-dl-playerbar-btn.echo-dl-btn--bar:hover{color:var(--color-primary,#31cfa1);transform:scale(1.1)}
+#echo-dl-playerbar-btn.echo-dl-btn--bar:active{transform:scale(.9)}
+#echo-dl-playerbar-btn.echo-dl-btn--bar:disabled{opacity:.6;cursor:not-allowed}
+#echo-dl-playerbar-btn.echo-dl-btn--bar:disabled:active{transform:scale(1)}
 #echo-dl-playerbar-btn.echo-dl-btn--float{position:fixed;right:18px;bottom:88px;z-index:99998;width:48px;height:48px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,var(--color-primary,#31cfa1) 88%,#0b7);color:#fff;cursor:pointer;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .15s ease}
 #echo-dl-playerbar-btn.echo-dl-btn--float:hover{transform:translateY(-2px)}
-#echo-dl-playerbar-btn svg{display:block}
+#echo-dl-playerbar-btn svg{display:block;width:20px;height:20px}
 
 @keyframes echo-dl-fade{from{opacity:0}to{opacity:1}}
 @keyframes echo-dl-pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
